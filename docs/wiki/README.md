@@ -3,13 +3,13 @@
 This directory is a research wiki for a possible PHP feature:
 
 ```php
-namespace Acme\Billing\Internal;
+namespace Acme\Billing;
 
-private(namespace) class ExactNamespaceOnly {}
-protected(namespace) class NamespaceAndDescendants {}
+private(namespace) class InternalService {}
 ```
 
-and a possible future extension:
+Earlier research also explored descendant namespace visibility and explicit
+roots:
 
 ```php
 namespace Acme\Billing\Infrastructure\Persistence;
@@ -17,6 +17,9 @@ namespace Acme\Billing\Infrastructure\Persistence;
 protected(namespace: \Acme\Billing)
 class BillingTreeOnly {}
 ```
+
+Those extensions are now Future Scope and are not part of the selected first
+RFC.
 
 The documents describe a working hypothesis, not an accepted PHP
 specification. No RFC has been published from this repository, and no PHP Wiki
@@ -45,6 +48,11 @@ started in the working tree. It is intentionally limited to parser support,
 class-entry metadata, Reflection metadata access, tokenizer support, OPcache
 metadata persistence plumbing, and parser/metadata PHPT tests. It does not
 implement runtime access enforcement.
+
+Phase 2 risk closure narrows the RFC target to exact-only `private(namespace)`
+on named class-like declarations. The current C prototype is useful spike
+evidence, but it is incomplete for that target because it still accepts and
+partially implements `protected(namespace)` descendant semantics.
 
 ## Local Build Environment
 
@@ -109,8 +117,12 @@ Current Phase C working tree status:
 | Semantics | [dynamic-runtime-behavior.md](02-semantics/dynamic-runtime-behavior.md) | Proposed runtime model |
 | Semantics | [reflection-autoload-and-aliases.md](02-semantics/reflection-autoload-and-aliases.md) | Proposed with open issues |
 | Semantics | [compatibility.md](02-semantics/compatibility.md) | Risk analysis |
-| Semantics | [open-questions.md](02-semantics/open-questions.md) | Active questions |
+| Semantics | [open-questions.md](02-semantics/open-questions.md) | No unresolved v1 semantic items |
 | Semantics | [decisions.md](02-semantics/decisions.md) | Decision log |
+| Risk closure | [README.md](07-risk-closure/README.md) | Phase 2 closure index |
+| Risk closure | [01-risk-register.md](07-risk-closure/01-risk-register.md) | Final risk statuses |
+| Risk closure | [04-normative-semantics.md](07-risk-closure/04-normative-semantics.md) | Normative exact-only draft |
+| Risk closure | [14-implementation-gates.md](07-risk-closure/14-implementation-gates.md) | Gate status |
 | Implementation | [php-src-map.md](03-implementation/php-src-map.md) | Source map |
 | Implementation | [parser-and-compiler.md](03-implementation/parser-and-compiler.md) | Implementation notes |
 | Implementation | [runtime-enforcement.md](03-implementation/runtime-enforcement.md) | Implementation notes |
@@ -129,7 +141,8 @@ Current Phase C working tree status:
 
 ## Current Prototype Status
 
-Status: incomplete experimental Phase C spike.
+Status: incomplete experimental Phase C spike; not aligned with selected
+exact-only RFC v1.
 
 Implemented in the working tree:
 
@@ -162,6 +175,9 @@ Known limitations:
 - current grammar accepts the namespace visibility modifier only before normal
   class modifiers, for example `protected(namespace) abstract class A {}`;
 - explicit root syntax remains Future Scope.
+- selected RFC v1 must reject class-level `protected(namespace)`;
+- namespace case normalization and trait body lexical namespace are not yet
+  implemented for the selected model.
 
 ## Source Register
 
@@ -171,16 +187,21 @@ marked as a hypothesis. The main sources used in this iteration are:
 - PHP RFC index: <https://wiki.php.net/rfc>
 - PHP RFC, Namespace-Scoped Visibility for Methods and Properties:
   <https://wiki.php.net/rfc/namespace_visibility>
+- php-src PR #20421:
+  <https://github.com/php/php-src/pull/20421>
 - PHP RFC, Namespace Visibility for Class, Interface and Trait:
   <https://wiki.php.net/rfc/namespace-visibility>
+- PHP RFC, Private Classes and Functions:
+  <https://wiki.php.net/rfc/private-classes-and-functions>
+- PHP RFC, Encapsulation:
+  <https://wiki.php.net/rfc/encapsulation>
 - PHP RFC, Attributes v2: <https://wiki.php.net/rfc/attributes_v2>
 - PHP RFC, Friends: <https://wiki.php.net/rfc/friends>
 - PHP RFC, Class Friendship: <https://wiki.php.net/rfc/friend-classes>
+- PHP RFC Voting: <https://wiki.php.net/rfc/voting>
 - PHP RFC HOWTO: <https://wiki.php.net/rfc/howto>
 - PHP Feature Proposals policy:
   <https://github.com/php/policies/blob/main/feature-proposals.rst>
-- php-src PR #20421:
-  <https://github.com/php/php-src/pull/20421>
 - D language specification:
   <https://dlang.org/spec/attribute.html>
 - Rust Reference:
@@ -232,6 +253,10 @@ sapi/cli/php run-tests.php -q \
 ```
 
 Result: 11/11 passed.
+
+Phase 2 did not rerun PHPT tests because it changed documentation and RFC scope
+only. New exact-only v1 tests are planned in
+[phpt-plan.md](04-tests/phpt-plan.md).
 
 Docker ZTS debug build:
 

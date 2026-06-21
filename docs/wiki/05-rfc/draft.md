@@ -1,309 +1,374 @@
-# PHP RFC: Namespace-Scoped Visibility for Class-like Declarations
+# PHP RFC: Exact Namespace Visibility for Class-like Declarations
 
-Version: 0.1-draft
+Version: 0.2-draft
 
 Date: 2026-06-21
 
-Author: TBD
+Author: Research draft, unassigned
 
-Status: Draft
+Status: Research draft
 
 ## Introduction
 
-This RFC draft explores namespace-scoped visibility for PHP class-like
-declarations. It is a research draft and has not been submitted to the PHP Wiki.
-
-The proposed base syntax is:
+This RFC draft proposes exact namespace visibility for named class-like
+declarations using the qualified modifier `private(namespace)`.
 
 ```php
-namespace Acme\Billing\Internal;
+namespace Acme\Billing;
 
-private(namespace) class ExactNamespaceOnly {}
-protected(namespace) class NamespaceAndDescendants {}
+private(namespace) class InternalService {}
 ```
 
-The absence of a namespace visibility modifier preserves current public
-semantics.
+The declaration may be used only by code whose lexical namespace is exactly the
+same namespace as the declaration. Child namespaces do not receive access in
+this RFC.
+
+This draft is not a submitted PHP RFC and is not a specification of current PHP.
 
 ## Motivation
 
 PHP projects often use namespaces such as `Internal`, `Infrastructure`, or
-`Detail` to mark implementation-only classes. Today, these boundaries are
-conventions. Any code can instantiate, extend, implement, or otherwise name
-those declarations if it can load them.
+`Detail` to mark implementation classes. Today this is convention only. Any code
+that can load the class can instantiate it, extend it, name it in type
+declarations, or access it statically.
 
-The goal is to give library and application authors a language-level way to
-express architectural boundaries while preserving PHP's dynamic loading model.
+`private(namespace)` gives libraries and applications an engine-enforced way to
+mark class-like declarations as internal to one exact namespace while preserving
+PHP's file-by-file loading model.
 
-This feature is not a security sandbox. Any PHP file can declare another
-namespace, so namespace-scoped visibility protects ordinary architecture, not
-untrusted-code isolation.
+This is not a security sandbox. Any PHP file can declare the same namespace.
 
 ## Proposal
 
-Add namespace-scoped visibility modifiers for named class-like declarations:
-
-```php
-private(namespace)
-protected(namespace)
-```
-
-`private(namespace)` restricts use of the declaration name to code in the exact
-same lexical namespace.
-
-`protected(namespace)` restricts use of the declaration name to code in the
-declaration namespace or its descendant namespaces.
-
-## Syntax
+Add `private(namespace)` as a modifier for named class-like declarations:
 
 ```php
 private(namespace) class A {}
-protected(namespace) class B {}
 private(namespace) interface I {}
-protected(namespace) trait T {}
+private(namespace) trait T {}
+private(namespace) enum E { case X; }
+```
+
+The absence of `private(namespace)` preserves current public class-like
+declaration behavior.
+
+Anonymous classes are not supported because they do not declare a stable
+top-level class-like symbol.
+
+## Syntax
+
+The modifier applies before the class-like declaration keyword:
+
+```php
+private(namespace) final class A {}
+private(namespace) readonly class B {}
+private(namespace) interface I {}
+private(namespace) trait T {}
 private(namespace) enum E {}
 ```
 
-The following is future scope:
+`protected(namespace)` is not part of this RFC. `private class`, `internal
+class`, `package class`, descendant modes, explicit root modes, and attributes
+are not part of this RFC.
 
-```php
-protected(namespace: \Acme\Billing) class UnitOfWork {}
-```
+The parser must reject duplicate or conflicting class-level namespace
+visibility modifiers.
 
-The `internal` modifier is not proposed by this RFC draft.
+## Exact Namespace Rule
 
-## Semantics
-
-For a declaration in namespace `D` and an operation in caller namespace `C`:
+For a target declaration namespace `D` and an operation lexical namespace `C`,
+access is permitted if and only if:
 
 ```text
-private(namespace):   C == D
-protected(namespace): C == D or C starts with D + "\\"
+normalize(C) == normalize(D)
 ```
 
-The prefix comparison is by complete namespace segments.
+The global namespace is represented as the empty string. Leading `\` is not part
+of the namespace value. Comparisons use the same case-normalized namespace
+spelling used for class-like symbol lookup; original spelling may be preserved
+for diagnostics and Reflection.
 
-For declaration namespace `Acme\Billing`:
-
-- `Acme\Billing` is allowed;
-- `Acme\Billing\Application` is allowed for `protected(namespace)`;
-- `Acme\BillingExtra` is not allowed;
-- `Acme\Bill` is not allowed.
+Namespace aliases affect target name resolution only. They do not change the
+caller lexical namespace.
 
 ## Lexical Namespace
 
-The caller namespace is the lexical namespace of the operation being compiled
-or executed. It does not depend on:
+The caller namespace is the lexical namespace of the operation. It does not
+depend on:
 
+- runtime call stack;
 - `debug_backtrace()`;
 - current object;
-- the namespace of the outer caller;
-- autoload order;
-- whether the target class has already been loaded.
+- namespace of the outer caller;
+- namespace of the autoloader;
+- class load order;
+- whether the class entry was cached.
 
-Functions, methods, closures, arrow functions, eval, traits, reflection, and
-internal functions that resolve class names need explicit engine handling.
+Top-level code uses the namespace active for the compiled top-level op array.
+Code without a namespace declaration uses the global namespace. `eval()` without
+a namespace declaration uses the global namespace; `eval()` with a namespace
+declaration uses the namespace declared in the evaluated code.
 
-## Supported Declarations
+For trait composition, `use RestrictedTrait` is checked from the namespace of
+the consuming class declaration. Operations written inside a trait body use the
+namespace of the trait declaration.
 
-The intended supported declarations are:
+## Checked Operations
 
-- class;
-- abstract class;
-- final class;
-- readonly class;
-- interface;
-- trait;
-- enum.
+The feature restricts semantic use of restricted class-like symbols. The access
+check runs after the operation resolves the target `zend_class_entry` and before
+the operation completes.
 
-Anonymous classes are not supported because they do not declare a stable
-top-level name.
+Checked operations include:
 
-## Access Operations
+- `new C()` and `new $class`;
+- static method, property, and class constant access;
+- `extends`, `implements`, interface extends, and trait `use`;
+- class-like names in parameter, return, property, class constant, promoted
+  property, union, intersection, and DNF types;
+- `instanceof` and `catch` when the target class entry is resolved;
+- callable resolution involving class strings;
+- Reflection instantiation;
+- unserialization of restricted class names;
+- attribute class instantiation.
 
-The feature restricts use of class-like names. Operations requiring coverage
-include:
+`C::class` is not checked and does not autoload. It produces a string. Later
+semantic use of that string is checked.
 
-- `new ClassName()`;
-- `new $className()`;
-- static method/property/constant access;
-- first-class, string, and array callables;
-- `Closure::fromCallable()`;
-- `call_user_func()` and callable probes;
-- `extends`, `implements`, interface extends, and trait use;
-- `instanceof` and `catch`;
-- parameter, return, property, class-constant, union, intersection, and DNF
-  types;
-- attributes that refer to class names;
-- aliases;
-- reflection construction;
-- serialization and unserialization;
-- OPcache, preload, and JIT paths.
+Existence and metadata probes such as `class_exists()` and
+`new ReflectionClass()` may reveal restricted declarations. They do not grant
+permission for later semantic use.
 
-## Dynamic Access
+## Already Obtained Objects
 
-Dynamic class-string use must be checked when the string is resolved to a
-class entry for an operation that uses the class-like declaration.
+Class-level namespace visibility is not an object membrane. Once an object has
+been obtained, public object operations remain governed by ordinary member
+visibility.
 
-Existence probes such as `class_exists()` are an open design point. The current
-draft direction is that visibility does not need to hide symbol existence, but
-probes must not grant later access.
+```php
+namespace Library;
 
-`SomeClass::class` is an open design point because PHP normally compiles it to a
-string without autoloading.
+public interface Service {
+    public function execute(): void;
+}
 
-## Inheritance and Types
+private(namespace) final class ServiceImpl implements Service {
+    public function execute(): void {}
+}
 
-Direct inheritance, interface implementation, interface extension, and trait use
-must check the restricted declaration from the namespace of the declaration that
-uses it.
+public function create(): Service {
+    return new ServiceImpl();
+}
 
-Consistent accessibility for public APIs exposing restricted types is deferred
-in this draft. PHP's autoloading and lazy type resolution make complete
-compile-time enforcement difficult.
+namespace Application;
+
+$service = \Library\create();
+$service->execute(); // allowed
+```
+
+External code still cannot name `Library\ServiceImpl` in `new`, `instanceof`,
+type declarations, inheritance, static access, or equivalent operations.
+
+Cloning, serialization, dynamic public property access, `get_class()`, and
+string comparison are not class-level visibility checks.
+
+## Types and Public API Exposure
+
+Type declarations are semantic use of class-like names when their target class
+entry is resolved. The caller namespace is the namespace of the declaration that
+contains the type.
+
+This RFC does not implement native consistent accessibility. A public API may
+expose a restricted type if that API is declared in a namespace allowed to name
+the type. External code may call the API and receive values, but cannot name the
+restricted type in its own semantic operations.
+
+Static analyzers are encouraged to diagnose public API exposure of restricted
+types as an architectural leak.
 
 ## Reflection
 
-Reflection should be able to read namespace visibility metadata. Whether
-Reflection construction methods are privileged is an explicit RFC decision.
+Reflection metadata access is allowed:
 
-The current draft preference is:
+- `new ReflectionClass($name)`;
+- `getName()`;
+- `getMethods()`;
+- `getProperties()`;
+- `getConstants()`;
+- namespace visibility metadata methods.
 
-- allow metadata inspection;
-- enforce visibility for `ReflectionClass::newInstance()`,
-  `newInstanceArgs()`, and `newInstanceWithoutConstructor()`.
+Reflection construction methods must enforce class-level namespace visibility:
+
+- `ReflectionClass::newInstance()`;
+- `ReflectionClass::newInstanceArgs()`;
+- `ReflectionClass::newInstanceWithoutConstructor()`.
+
+No privileged Reflection bypass is part of this RFC.
+
+`ReflectionMethod::invoke()` is not a class-level object membrane check. It
+continues to follow Reflection and member-visibility behavior.
+
+## Aliases
+
+Visibility metadata belongs to the target `zend_class_entry`. `class_alias()`
+does not widen visibility.
+
+An alias created in an allowed namespace, denied namespace, before loading,
+after loading, through autoload, or under OPcache still resolves to a class
+entry whose namespace visibility metadata must be checked on semantic use.
 
 ## Autoloading
 
-If metadata for an unloaded class is needed, autoload may run before the access
-error is reported. The caller namespace remains the namespace of the original
-operation, not the namespace of the autoloader.
+For unknown class names, metadata is known only after the class is loaded.
+Autoload may therefore run before an access error.
 
-Directly requiring the file that declares a restricted class does not grant
-permission to use that class name from a disallowed namespace.
+The access check uses the lexical namespace of the original operation, not the
+namespace of the autoloader.
 
-## Error Behavior
+Preventing autoload side effects requires a separate metadata manifest or
+module/package system and is not part of this RFC.
 
-Runtime violations should throw `Error`.
+## Runtime Cache, OPcache, and Preload
+
+Runtime caches must not bypass visibility. If a class entry was resolved and
+cached by code in an allowed namespace, later code in a denied namespace must
+perform its own access check before semantic use.
+
+The implementation must cover:
+
+- opcode runtime caches;
+- class-entry cache on strings;
+- class table aliases;
+- inheritance cache;
+- callable/fcall caches;
+- Reflection objects storing class entries;
+- OPcache persistent class entries;
+- preloaded classes;
+- JIT helpers and assumptions.
+
+OPcache must persist namespace visibility metadata. Preload must not remove or
+widen visibility.
+
+## Errors
+
+Runtime access violations throw `Error`.
 
 Preferred message shape:
 
 ```text
-Cannot access private(namespace) class Acme\Billing\Internal\Service from namespace App\Controller
+Cannot access private(namespace) class Acme\Billing\InternalService from namespace App
 ```
 
-Compile-time or class-linking violations may use existing compile/link fatal
-paths where appropriate. Stable messages should not include absolute file paths
-unless an existing engine path requires them.
+Compile-time or class-linking failures may use existing fatal compile/link
+paths where PHP already resolves the class entry during compilation or linking.
 
 ## Backward Incompatible Changes
 
-The new syntax is currently invalid PHP, so existing valid code should not be
-reinterpreted. The main compatibility risks are:
+The proposed syntax is currently invalid for class-like declarations. Existing
+valid PHP source is not reinterpreted.
 
-- reflection construction behavior;
-- class-string and callable behavior;
-- autoload side effects before denial;
-- OPcache/JIT optimized paths;
-- public APIs exposing restricted types.
+Compatibility impact exists for:
 
-## Proposed PHP Version
+- tokenizer/parser/formatter/IDE support;
+- static analyzers;
+- Reflection metadata;
+- extension ABI if `zend_class_entry` or class fetch APIs change;
+- OPcache persistence format;
+- code generators that need to parse or emit class-like declarations.
 
-TBD. This is an ABI-impacting feature if it changes `zend_class_entry` or
-`zend_op_array`, so it should target a future minor version only after engine
-and RFC review.
+Compatibility of third-party tools is not claimed without their own tests.
 
-## Impact on Extensions
+## Security
 
-Extensions may be affected by:
+Namespace visibility does not establish namespace ownership and is not a
+security boundary. It does not protect against code that intentionally declares
+the same namespace.
 
-- new `zend_class_entry` flags or fields;
-- new Reflection methods;
-- tokenizer constants;
-- class fetch APIs if caller namespace context is added;
-- OPcache persistence changes.
+The feature is for architectural enforcement in cooperating codebases.
 
-No public Zend API is proposed in this draft.
+## Implementation Status
 
-## Impact on OPcache
+Current local prototype status: incomplete experimental Phase B/C spike.
 
-OPcache must persist any new class-entry or op-array metadata and preserve
-identical behavior with and without caching, preload, and JIT.
+Implemented in the spike:
 
-Runtime caches must not skip checks after a restricted class entry has been
-resolved by allowed code.
+- parser and metadata support for `private(namespace)` and
+  `protected(namespace)`;
+- Reflection metadata methods;
+- partial OPcache metadata persistence;
+- partial runtime enforcement for `new` and `ZEND_FETCH_CLASS`.
+
+Not complete for this RFC:
+
+- v1 must reject `protected(namespace)` for class-like declarations;
+- namespace metadata must be normalized for access comparison;
+- trait body operations need original trait declaration namespace metadata;
+- static access, inheritance, type resolution, `instanceof`, `catch`,
+  callables, aliases, Reflection instantiation, unserialization, OPcache,
+  preload, and JIT are not fully enforced;
+- performance is not measured.
 
 ## Performance
 
-No benchmarks have been run.
+Performance evidence is NOT MEASURED.
 
-The intended fast path is:
-
-```c
-if (!(ce->ce_flags & ZEND_ACC_NAMESPACE_RESTRICTED)) {
-    return SUCCESS;
-}
-```
-
-Unrestricted classes should pay at most a predictable flag check after class
-entry resolution. Restricted classes require caller namespace lookup and string
-comparison.
-
-## Open Issues
-
-- Case sensitivity and canonicalization of namespace comparisons.
-- Global namespace behavior for `protected(namespace)`.
-- `SomeClass::class` behavior.
-- Existence and probing functions.
-- Reflection bypass or enforcement.
-- Public API consistent accessibility.
-- Trait declaration namespace vs using class namespace.
-- Exact error types for class-linking paths.
-- OPcache/JIT cache-key design.
-
-## Future Scope
-
-- `protected(namespace: \Root)` where `Root` is the declaration namespace or an
-  ancestor by full namespace segments.
-- Namespace visibility for functions and constants.
-- File-private visibility.
-- Module/package-level `internal` if PHP gains a real module/package boundary.
-- Friend namespaces or multiple roots.
+The intended design requires a public fast path for unrestricted class-like
+declarations and reproducible benchmarks before voting.
 
 ## Rejected Alternatives
 
-- Plain `private class` / `protected class` for the first prototype.
-- `internal class` without a module boundary.
-- Userland-only attributes as enforcement.
-- Runtime membrane checks on every object method/property operation.
+- Plain `private class`: reserved for file or namespace-block privacy in the
+  private classes/functions draft.
+- `protected(namespace)`: conflicts with inheritance terminology and the active
+  member RFC's Future Scope.
+- Descendant visibility in v1: deferred because it adds namespace hierarchy,
+  segment comparison, root/global rules, and separate syntax choices.
+- Explicit root in v1: deferred because exact namespace visibility is useful
+  without it and root validation is separate.
+- `internal class`: reserved for a future module/package boundary.
+- Attribute syntax: rejected for v1 because engine enforcement still needs
+  parser/compiler/runtime integration and string roots are refactor-sensitive.
+- Runtime object membrane: rejected because the feature restricts class-like
+  names, not already obtained objects.
+- Native consistent accessibility: deferred because it expands class-linking,
+  autoload, variance, and API graph analysis.
 
-## Proposed Voting Questions
+## Future Scope
 
-TBD. Possible votes:
+- Namespace subtree visibility with syntax selected separately.
+- Explicit ancestor root.
+- Module/package-level `internal`.
+- Friend namespaces or friend classes.
+- Function and constant namespace visibility.
+- Native consistent accessibility diagnostics.
+- Optional privileged Reflection bypass, if explicitly voted.
 
-1. Add `private(namespace)` and `protected(namespace)` for named class-like
-   declarations.
-2. Include interfaces, traits, and enums.
-3. Chosen behavior for `SomeClass::class`.
-4. Chosen behavior for reflection construction.
-5. Chosen behavior for global `protected(namespace)`.
+## Proposed Voting Question
+
+Primary vote, 2/3 majority:
+
+> Add `private(namespace)` exact namespace visibility for named class-like
+> declarations (`class`, `interface`, `trait`, and `enum`)?
+
+Independent future votes are required for descendants, explicit roots,
+`protected(namespace)`, modules/internal, and native consistent accessibility.
 
 ## References
 
-- Namespace-Scoped Visibility for Methods and Properties:
-  <https://wiki.php.net/rfc/namespace_visibility>
-- Namespace Visibility for Class, Interface and Trait:
-  <https://wiki.php.net/rfc/namespace-visibility>
-- Attributes v2: <https://wiki.php.net/rfc/attributes_v2>
-- Friends: <https://wiki.php.net/rfc/friends>
-- Feature Proposals policy:
-  <https://github.com/php/policies/blob/main/feature-proposals.rst>
-- php-src PR #20421: <https://github.com/php/php-src/pull/20421>
-- D specification: <https://dlang.org/spec/attribute.html>
-- Rust Reference:
-  <https://doc.rust-lang.org/reference/visibility-and-privacy.html>
+- <https://wiki.php.net/rfc/namespace_visibility>
+- <https://github.com/php/php-src/pull/20421>
+- <https://wiki.php.net/rfc/namespace-visibility>
+- <https://wiki.php.net/rfc/private-classes-and-functions>
+- <https://wiki.php.net/rfc/encapsulation>
+- <https://externals.io/message/127466>
+- <https://externals.io/message/51562>
+- <https://externals.io/message/119893>
+- <https://wiki.php.net/rfc/friend-classes>
+- <https://wiki.php.net/rfc/voting>
 
 ## Changelog
 
-- 0.1-draft, 2026-06-21: Initial repository-local research draft.
-
+- 0.2-draft: Narrowed proposal to exact-only `private(namespace)` class-like
+  declarations; moved descendants, explicit root, and `protected(namespace)` out
+  of Proposal.
+- 0.1-draft: Initial research draft with exact and descendant ideas.

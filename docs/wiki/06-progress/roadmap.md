@@ -118,6 +118,8 @@ Deliverables:
 
 ## Iteration 6: RFC Hardening
 
+Status: started in Phase 2 documentation.
+
 Deliverables:
 
 - decide open questions;
@@ -125,3 +127,38 @@ Deliverables:
 - collect implementation data;
 - discuss with internals;
 - adjust scope before any vote.
+
+Completed in Phase 2 documentation:
+
+- selected exact-only `private(namespace)` class-like declarations for RFC v1;
+- excluded descendants, explicit root, `protected(namespace)`, `internal`,
+  friend namespaces, and native consistent accessibility from RFC v1;
+- created `docs/wiki/07-risk-closure` with risk register, normative semantics,
+  operation coverage, runtime/cache map, Reflection/autoload/alias policy,
+  adversarial review, RFC splitting, implementation gates, and acceptance
+  checklist;
+- rewrote the RFC draft to describe only the selected minimal scope;
+- added DEC-020 through DEC-040 as superseding v1 decisions;
+- replaced open questions with final dispositions and implementation gates;
+- updated test and PHPT plans for exact-only v1.
+
+Remaining before RFC discussion:
+
+- align the C prototype with exact-only v1 syntax and semantics;
+- complete class-entry enforcement coverage;
+- validate OPcache/preload/JIT behavior;
+- measure performance;
+- rerun targeted and broader PHPT suites.
+
+## Iteration 7: Exact-only v1 Implementation Alignment
+
+Deliverables:
+
+- reject class-level `protected(namespace)` in v1 parser/tests;
+- normalize declaring and caller namespaces for checks;
+- carry lexical namespace through top-level, closures, eval, traits, class
+  linking, Reflection, internal functions, and unserialize;
+- enforce all operations in the v1 operation matrix;
+- preserve checks on cache hits and aliases;
+- run OPcache/preload tests;
+- record benchmark evidence.

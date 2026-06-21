@@ -1,21 +1,61 @@
 # Alternatives
 
-## Plain `private class` and `protected class`
+## Plain `private class`
 
 Pros:
 
 - Short syntax.
-- Familiar visibility words.
-- Prior art in the old PHP namespace visibility draft.
+- Familiar word.
+- Prior art in old namespace visibility and encapsulation drafts.
 
 Cons:
 
-- Ambiguous with member visibility.
-- `protected class` can be read as subclass visibility.
-- `private class` conflicts with possible file-private visibility.
+- Conflicts with the private classes/functions draft, where `private class`
+  means file or namespace-block private through name mangling.
 - Harder to extend to `private(file)` or `private(module)`.
+- Gives no indication that the restriction is exact namespace based.
 
-Status: rejected for first prototype.
+Status: rejected for RFC v1.
+
+## `protected(namespace)`
+
+Pros:
+
+- Familiar modifier word.
+- Could be read as broader than `private(namespace)`.
+
+Cons:
+
+- In PHP, `protected` means inheritance-based access.
+- The active member namespace visibility RFC lists `protected(namespace)` as
+  Future Scope for combining namespace visibility with inheritance visibility.
+- Descendant namespace access is a different hierarchy and needs separate
+  syntax.
+
+Status: rejected for RFC v1 and reserved for a separate RFC/vote.
+
+## Descendant or Root Syntax
+
+Examples:
+
+```php
+private(namespace: descendants) class A {}
+private(namespace: \Acme\Billing) class B {}
+```
+
+Pros:
+
+- Useful for namespace subtrees.
+- Can avoid overloading `protected`.
+
+Cons:
+
+- Requires segment-aware hierarchy semantics.
+- Requires global namespace root rules.
+- Requires root validation and refactoring policy.
+- Increases implementation and voting scope.
+
+Status: Future Scope.
 
 ## `internal class`
 
@@ -57,7 +97,7 @@ Cons:
 - String namespace arguments are fragile under refactoring.
 - Core visibility looks optional and metadata-like.
 
-Status: not preferred for base syntax.
+Status: rejected for RFC v1.
 
 ## Runtime Membrane
 
@@ -77,7 +117,7 @@ Cons:
   and public interfaces.
 - Much larger compatibility surface.
 
-Status: rejected for first prototype. The name model is preferred.
+Status: rejected for RFC v1. The class-name symbol model is selected.
 
 ## Friend Namespaces
 
@@ -118,3 +158,18 @@ Cons:
 
 Status: out of scope for this language feature.
 
+## Native Consistent Accessibility
+
+Pros:
+
+- Prevents public APIs from exposing restricted types.
+- Aligns with languages that require public signatures to mention public types.
+
+Cons:
+
+- Expands class-linking, lazy type resolution, autoload, variance, Reflection,
+  and OPcache scope.
+- May force new diagnostics before all referenced types are loaded.
+
+Status: Future Scope. RFC v1 allows declaration-site use and restricts external
+semantic use.

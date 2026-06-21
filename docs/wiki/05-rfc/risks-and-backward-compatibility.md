@@ -2,9 +2,15 @@
 
 ## Syntax Risk
 
-The base syntax is currently invalid, so direct source backward compatibility
-risk is low. Tooling risk exists because tokenizers, parsers, formatters, and
-IDEs must learn the new modifier.
+`private(namespace)` before named class-like declarations is currently invalid,
+so direct source backward compatibility risk is low.
+
+`protected(namespace)` is not proposed for class-like declarations in RFC v1.
+The parser must reject it until a separate RFC chooses inheritance or descendant
+semantics.
+
+Tooling risk exists because tokenizers, parsers, formatters, and IDEs must learn
+the new modifier.
 
 ## Semantic Risk
 
@@ -28,24 +34,23 @@ are covered.
 ## Autoload Risk
 
 Forbidden access may still autoload the target before failing because metadata
-is known only after class loading. This can trigger side effects. The RFC must
-document that behavior if it is retained.
+is known only after class loading. This can trigger side effects. RFC v1 accepts
+this limitation.
 
 ## Reflection Risk
 
-If reflection construction bypasses visibility, the feature becomes weaker and
-users may treat Reflection as an official escape hatch. If reflection enforces
-visibility, some metaprogramming patterns fail for restricted classes. This is a
-real RFC decision, not an implementation detail.
+RFC v1 allows Reflection metadata and enforces Reflection construction. No
+privileged Reflection construction bypass is proposed.
 
 ## Public API Risk
 
 Allowing public APIs to expose restricted types may produce APIs that external
 code can call but cannot name, extend, or implement. Forbidding inconsistent
-accessibility may require earlier autoloading or more compile/link checks than
+accessibility would require earlier autoloading or more compile/link checks than
 PHP currently performs.
 
-First prototype recommendation: defer full consistent accessibility.
+RFC v1 defers native consistent accessibility and recommends static analyzer
+diagnostics.
 
 ## ABI/API Risk
 
@@ -65,3 +70,8 @@ Users may misread namespace visibility as sandboxing. It is not. Any PHP file
 can declare any namespace. This feature protects architectural intent under
 normal project conventions, not untrusted-code isolation.
 
+## Performance Risk
+
+Performance is NOT MEASURED for the selected v1 model. RFC voting must wait for
+Gate 5 evidence: public fast path, structure size impact, OPcache on/off, JIT
+on/off where available, and multiple benchmark runs.

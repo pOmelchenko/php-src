@@ -1,15 +1,12 @@
 # PHPT Plan
 
-Phase B parser/metadata PHPT files exist. Phase C now has a minimal runtime
-`new` enforcement test set, but the broader operation matrix remains pending.
+This plan targets exact-only RFC v1. Existing Phase B/C tests remain historical
+prototype evidence; tests involving `protected(namespace)` must be moved to
+Future Scope or rewritten as v1 rejection tests.
 
-## Phase B Parser and Metadata Tests
+## Implemented Historical Tests
 
-Directory:
-
-- `Zend/tests/access_modifiers`
-
-Implemented files:
+Implemented files from the Phase B/C spike:
 
 - `Zend/tests/access_modifiers/ns_visibility_class_like_syntax.phpt`
 - `Zend/tests/access_modifiers/ns_visibility_class_like_metadata.phpt`
@@ -17,144 +14,122 @@ Implemented files:
 - `Zend/tests/access_modifiers/ns_visibility_duplicate_modifier_error.phpt`
 - `Zend/tests/access_modifiers/ns_visibility_explicit_root_error.phpt`
 - `ext/tokenizer/tests/ns_visibility_tokens.phpt`
-
-Still planned:
-
-- `ns_visibility_private_and_protected_rejected.phpt`;
-- parser rejection for `internal class A {}` if needed;
-- parser-order tests if the final syntax accepts both modifier orders.
-
-Assertions:
-
-- accepted syntax parses;
-- rejected syntax has stable parse/compile error;
-- metadata can be observed by temporary debug/reflection surface;
-- no runtime enforcement is claimed if Phase B does not implement it.
-
-## Phase C Core Runtime Tests
-
-Implemented files:
-
 - `Zend/tests/access_modifiers/ns_visibility_runtime_new_static.phpt`
 - `Zend/tests/access_modifiers/ns_visibility_runtime_new_dynamic.phpt`
 - `Zend/tests/access_modifiers/ns_visibility_runtime_method_namespace.phpt`
-- `Zend/tests/access_modifiers/ns_visibility_runtime_segment_prefix.phpt`
 - `Zend/tests/access_modifiers/ns_visibility_runtime_new_cache_order.phpt`
+- `Zend/tests/access_modifiers/ns_visibility_runtime_segment_prefix.phpt`
 
-Still planned:
+Result on 2026-06-21 in the Docker debug build: 11/11 passed. Docker ZTS debug
+build also passed. These tests were not rerun during the documentation-only
+Phase 2 update.
 
-- `ns_visibility_private_same_namespace_allowed.phpt`
-- `ns_visibility_private_child_namespace_denied.phpt`
-- `ns_visibility_protected_same_namespace_allowed.phpt`
-- `ns_visibility_protected_child_namespace_allowed.phpt`
-- `ns_visibility_protected_sibling_namespace_denied.phpt`
-- `ns_visibility_segment_prefix_false_positive.phpt`
-- `ns_visibility_global_private.phpt`
-- `ns_visibility_global_protected.phpt`
-- `ns_visibility_case_handling.phpt`
-- `ns_visibility_error_message.phpt`
+## Required v1 Parser Tests
 
-Assertions:
+| ID | Risk IDs | File | Status |
+| --- | --- | --- | --- |
+| PHPT-SYN-001 | RISK-002 | `ns_visibility_private_namespace_class_like.phpt` | Planned |
+| PHPT-SYN-002 | RISK-001 | `ns_visibility_protected_namespace_rejected_v1.phpt` | Planned |
+| PHPT-SYN-003 | RISK-002 | `ns_visibility_plain_private_class_not_v1.phpt` | Planned |
+| PHPT-SYN-004 | RISK-017 | `ns_visibility_internal_class_not_v1.phpt` | Planned |
+| PHPT-SYN-005 | RISK-006 | `ns_visibility_explicit_root_not_v1.phpt` | Planned |
+| PHPT-SYN-006 | RISK-003 | `ns_visibility_anonymous_class_rejected.phpt` | Existing/prototype |
 
-- exact `Error` type for runtime denials;
-- stable message without absolute paths;
-- caller namespace included;
-- target class name included;
-- allowed scope included where practical.
+## Required Exact Namespace Tests
 
-Current limitation:
+| ID | Risk IDs | File | Status |
+| --- | --- | --- | --- |
+| PHPT-EXACT-001 | RISK-004 | `ns_visibility_same_namespace_same_file.phpt` | Planned |
+| PHPT-EXACT-002 | RISK-004 | `ns_visibility_same_namespace_other_file.phpt` | Planned |
+| PHPT-EXACT-003 | RISK-006 | `ns_visibility_child_namespace_denied.phpt` | Planned |
+| PHPT-EXACT-004 | RISK-006 | `ns_visibility_parent_namespace_denied.phpt` | Planned |
+| PHPT-EXACT-005 | RISK-006 | `ns_visibility_sibling_namespace_denied.phpt` | Planned |
+| PHPT-EXACT-006 | RISK-006 | `ns_visibility_prefix_collision_denied.phpt` | Existing/prototype for protected; rewrite for v1 private |
+| PHPT-EXACT-007 | RISK-013 | `ns_visibility_global_global.phpt` | Planned |
+| PHPT-EXACT-008 | RISK-013 | `ns_visibility_global_named_denied.phpt` | Planned |
+| PHPT-EXACT-009 | RISK-013 | `ns_visibility_named_global_denied.phpt` | Planned |
+| PHPT-EXACT-010 | RISK-004 | `ns_visibility_namespace_case_normalized.phpt` | Planned |
+| PHPT-EXACT-011 | RISK-004 | `ns_visibility_bracketed_namespace.phpt` | Planned |
+| PHPT-EXACT-012 | RISK-004 | `ns_visibility_multiple_namespace_blocks.phpt` | Planned |
 
-- tests call `new` from named functions so the Phase C prototype can derive
-  caller namespace from function/method metadata;
-- top-level, closure, eval, and trait caller tests are still pending.
+## Required Lexical Tests
 
-## Phase D Operation Coverage Tests
+| ID | Risk IDs | File | Status |
+| --- | --- | --- | --- |
+| PHPT-LEX-001 | RISK-004 | `ns_visibility_function_lexical_namespace.phpt` | Planned |
+| PHPT-LEX-002 | RISK-004 | `ns_visibility_method_lexical_namespace.phpt` | Existing/prototype partial |
+| PHPT-LEX-003 | RISK-004 | `ns_visibility_closure_namespace.phpt` | Planned |
+| PHPT-LEX-004 | RISK-004 | `ns_visibility_arrow_function_namespace.phpt` | Planned |
+| PHPT-LEX-005 | RISK-004 | `ns_visibility_closure_bind_does_not_change_namespace.phpt` | Planned |
+| PHPT-LEX-006 | RISK-004 | `ns_visibility_eval_global_default.phpt` | Planned |
+| PHPT-LEX-007 | RISK-004 | `ns_visibility_eval_explicit_namespace.phpt` | Planned |
+| PHPT-LEX-008 | RISK-012 | `ns_visibility_trait_body_declaration_namespace.phpt` | Planned |
+| PHPT-LEX-009 | RISK-012 | `ns_visibility_trait_body_no_using_class_gain.phpt` | Planned |
+| PHPT-LEX-010 | RISK-012 | `ns_visibility_trait_use_consuming_namespace.phpt` | Planned |
+| PHPT-LEX-011 | RISK-004 | `ns_visibility_inherited_method_body_namespace.phpt` | Planned |
 
-Planned files:
+## Required Operation Tests
 
-- `ns_visibility_new_static.phpt`
-- `ns_visibility_new_dynamic.phpt`
-- `ns_visibility_static_method.phpt`
-- `ns_visibility_static_property.phpt`
-- `ns_visibility_class_constant.phpt`
-- `ns_visibility_class_name_constant.phpt`
-- `ns_visibility_first_class_callable.phpt`
-- `ns_visibility_string_callable.phpt`
-- `ns_visibility_array_callable.phpt`
-- `ns_visibility_closure_from_callable.phpt`
-- `ns_visibility_call_user_func.phpt`
-- `ns_visibility_is_callable.phpt`
-- `ns_visibility_extends.phpt`
-- `ns_visibility_implements.phpt`
-- `ns_visibility_interface_extends.phpt`
-- `ns_visibility_trait_use.phpt`
-- `ns_visibility_instanceof.phpt`
-- `ns_visibility_catch.phpt`
-- `ns_visibility_param_type.phpt`
-- `ns_visibility_return_type.phpt`
-- `ns_visibility_property_type.phpt`
-- `ns_visibility_class_const_type.phpt`
-- `ns_visibility_union_type.phpt`
-- `ns_visibility_intersection_type.phpt`
-- `ns_visibility_dnf_type.phpt`
-- `ns_visibility_promoted_property.phpt`
-- `ns_visibility_attribute_class_arg.phpt`
-- `ns_visibility_class_exists.phpt`
-- `ns_visibility_interface_exists.phpt`
-- `ns_visibility_trait_exists.phpt`
-- `ns_visibility_enum_exists.phpt`
-- `ns_visibility_is_a.phpt`
-- `ns_visibility_is_subclass_of.phpt`
-- `ns_visibility_method_exists.phpt`
-- `ns_visibility_property_exists.phpt`
-- `ns_visibility_defined_class_const.phpt`
-- `ns_visibility_class_alias.phpt`
-- `ns_visibility_reflection_construct.phpt`
-- `ns_visibility_reflection_new_instance.phpt`
-- `ns_visibility_reflection_new_without_ctor.phpt`
-- `ns_visibility_reflection_method_invoke.phpt`
-- `ns_visibility_serialize.phpt`
-- `ns_visibility_unserialize.phpt`
-- `ns_visibility_set_state.phpt`
-- `ns_visibility_clone_existing.phpt`
-- `ns_visibility_direct_require.phpt`
-- `ns_visibility_autoload_side_effects.phpt`
+| ID | Risk IDs | File | Status |
+| --- | --- | --- | --- |
+| PHPT-OP-001 | RISK-004 | `ns_visibility_new_static.phpt` | Existing/prototype partial |
+| PHPT-OP-002 | RISK-004 | `ns_visibility_new_dynamic.phpt` | Existing/prototype partial |
+| PHPT-OP-003 | RISK-004 | `ns_visibility_static_method.phpt` | Planned |
+| PHPT-OP-004 | RISK-004 | `ns_visibility_static_property.phpt` | Planned |
+| PHPT-OP-005 | RISK-004 | `ns_visibility_class_constant.phpt` | Planned |
+| PHPT-OP-006 | RISK-014 | `ns_visibility_class_name_constant.phpt` | Planned |
+| PHPT-OP-007 | RISK-004 | `ns_visibility_extends.phpt` | Planned |
+| PHPT-OP-008 | RISK-004 | `ns_visibility_implements.phpt` | Planned |
+| PHPT-OP-009 | RISK-004 | `ns_visibility_interface_extends.phpt` | Planned |
+| PHPT-OP-010 | RISK-012 | `ns_visibility_trait_use.phpt` | Planned |
+| PHPT-OP-011 | RISK-014 | `ns_visibility_instanceof.phpt` | Planned |
+| PHPT-OP-012 | RISK-014 | `ns_visibility_catch.phpt` | Planned |
+| PHPT-OP-013 | RISK-011 | `ns_visibility_param_type.phpt` | Planned |
+| PHPT-OP-014 | RISK-011 | `ns_visibility_return_type.phpt` | Planned |
+| PHPT-OP-015 | RISK-011 | `ns_visibility_property_type.phpt` | Planned |
+| PHPT-OP-016 | RISK-011 | `ns_visibility_class_const_type.phpt` | Planned |
+| PHPT-OP-017 | RISK-011 | `ns_visibility_promoted_property.phpt` | Planned |
+| PHPT-OP-018 | RISK-011 | `ns_visibility_union_type.phpt` | Planned |
+| PHPT-OP-019 | RISK-011 | `ns_visibility_intersection_type.phpt` | Planned |
+| PHPT-OP-020 | RISK-011 | `ns_visibility_dnf_type.phpt` | Planned |
+| PHPT-OP-021 | RISK-004 | `ns_visibility_attribute_class.phpt` | Planned |
+| PHPT-OP-022 | RISK-014 | `ns_visibility_attribute_class_string.phpt` | Planned |
+| PHPT-OP-023 | RISK-004 | `ns_visibility_first_class_callable.phpt` | Planned |
+| PHPT-OP-024 | RISK-004 | `ns_visibility_string_callable.phpt` | Planned |
+| PHPT-OP-025 | RISK-004 | `ns_visibility_array_callable.phpt` | Planned |
+| PHPT-OP-026 | RISK-004 | `ns_visibility_closure_from_callable.phpt` | Planned |
+| PHPT-OP-027 | RISK-004 | `ns_visibility_call_user_func.phpt` | Planned |
+| PHPT-OP-028 | RISK-004 | `ns_visibility_is_callable.phpt` | Planned |
+| PHPT-OP-029 | RISK-014 | `ns_visibility_class_exists_family.phpt` | Planned |
+| PHPT-OP-030 | RISK-014 | `ns_visibility_is_a_is_subclass_of.phpt` | Planned |
+| PHPT-OP-031 | RISK-014 | `ns_visibility_method_property_exists.phpt` | Planned |
+| PHPT-OP-032 | RISK-015 | `ns_visibility_class_alias.phpt` | Planned |
+| PHPT-OP-033 | RISK-010 | `ns_visibility_reflection_metadata.phpt` | Existing/prototype partial |
+| PHPT-OP-034 | RISK-010 | `ns_visibility_reflection_new_instance.phpt` | Planned |
+| PHPT-OP-035 | RISK-010 | `ns_visibility_reflection_new_without_ctor.phpt` | Planned |
+| PHPT-OP-036 | RISK-004 | `ns_visibility_serialize_existing_object.phpt` | Planned |
+| PHPT-OP-037 | RISK-004 | `ns_visibility_unserialize_restricted.phpt` | Planned |
+| PHPT-OP-038 | RISK-004 | `ns_visibility_clone_existing_object.phpt` | Planned |
+| PHPT-OP-039 | RISK-004 | `ns_visibility_set_state.phpt` | Planned |
+| PHPT-OP-040 | RISK-008 | `ns_visibility_direct_require_no_bypass.phpt` | Planned |
 
-## Lexical Caller Tests
+## Cache, OPcache, and Preload Tests
 
-Planned files:
+| ID | Risk IDs | File | Status |
+| --- | --- | --- | --- |
+| PHPT-CACHE-001 | RISK-008 | `ns_visibility_allowed_then_denied_cache.phpt` | Existing/prototype for `new`; broaden |
+| PHPT-CACHE-002 | RISK-008 | `ns_visibility_denied_then_allowed_cache.phpt` | Existing/prototype for `new`; broaden |
+| PHPT-CACHE-003 | RISK-008 | `ns_visibility_two_op_arrays_cache.phpt` | Planned |
+| PHPT-CACHE-004 | RISK-015 | `ns_visibility_alias_allowed_then_denied.phpt` | Planned |
+| PHPT-CACHE-005 | RISK-015 | `ns_visibility_alias_denied_then_allowed.phpt` | Planned |
+| PHPT-CACHE-006 | RISK-008 | `ns_visibility_opcache_off.phpt` | Planned |
+| PHPT-CACHE-007 | RISK-008 | `ns_visibility_opcache_on.phpt` | Planned |
+| PHPT-CACHE-008 | RISK-008 | `ns_visibility_preload.phpt` | Planned |
+| PHPT-CACHE-009 | RISK-008 | ZTS targeted run | Environment-dependent |
 
-- `ns_visibility_function_lexical_namespace.phpt`
-- `ns_visibility_method_lexical_namespace.phpt`
-- `ns_visibility_static_method_lexical_namespace.phpt`
-- `ns_visibility_closure_namespace.phpt`
-- `ns_visibility_arrow_function_namespace.phpt`
-- `ns_visibility_closure_bind_does_not_change_namespace.phpt`
-- `ns_visibility_eval_explicit_namespace.phpt`
-- `ns_visibility_eval_inherited_namespace.phpt`
-- `ns_visibility_multiple_namespace_blocks.phpt`
-- `ns_visibility_bracketed_namespace.phpt`
-- `ns_visibility_unbracketed_namespace.phpt`
-- `ns_visibility_trait_decl_namespace_model.phpt`
-- `ns_visibility_trait_using_class_namespace_model.phpt`
+## Commands and Current Results
 
-## Cache and OPcache Tests
-
-Planned files:
-
-- `ns_visibility_allowed_then_denied_cache.phpt`
-- `ns_visibility_denied_then_allowed_cache.phpt`
-- `ns_visibility_alias_allowed_then_denied.phpt`
-- `ns_visibility_opcache_on.phpt`
-- `ns_visibility_opcache_off.phpt`
-- `ns_visibility_preload.phpt`
-- `ns_visibility_jit.phpt`
-
-OPcache/JIT tests should be skipped when the extension or mode is unavailable.
-
-## Commands and Results
-
-Docker debug build plus targeted PHPT run:
+Last executed before this documentation update:
 
 ```sh
 sapi/cli/php run-tests.php -q \
@@ -171,18 +146,16 @@ sapi/cli/php run-tests.php -q \
   ext/tokenizer/tests/ns_visibility_tokens.phpt
 ```
 
-Result on 2026-06-21: 11/11 passed.
+Historical result: 11/11 passed.
 
-Also run:
+Not run in Phase 2:
 
-- Docker debug build: passed;
-- Docker ZTS debug build: passed.
-
-Not run yet:
-
+- new v1 exact-only tests;
 - full `make test`;
-- OPcache tests;
-- JIT tests.
+- OPcache on/off tests;
+- preload tests;
+- JIT tests;
+- benchmark tests.
 
-Reason: Phase C does not yet cover the optimized paths that OPcache/JIT tests
-need to exercise.
+Reason: this phase changed documentation and RFC scope only; the C prototype is
+incomplete for the selected exact-only v1 model.

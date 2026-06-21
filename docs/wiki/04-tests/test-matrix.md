@@ -1,114 +1,121 @@
 # Test Matrix
 
-No PHPT tests were added in this documentation-only iteration because no parser
-or runtime code was implemented. This matrix defines required coverage.
+This matrix targets exact-only RFC v1:
+
+```php
+private(namespace) class-like declarations
+```
+
+`protected(namespace)`, descendants, and explicit root syntax are Future Scope
+and must not be treated as v1 acceptance tests.
 
 ## Syntax
 
-| Category | Cases | Expected |
-| --- | --- | --- |
-| Parser accepted | `private(namespace)` and `protected(namespace)` before class/interface/trait/enum | parses after Phase B |
-| Parser rejected | anonymous class with namespace visibility | parse error |
-| Parser rejected | duplicate namespace visibility modifiers | compile error |
-| Parser rejected | both private and protected namespace visibility | compile error |
-| Parser rejected | `protected(namespace: Root)` before Phase F | parse error or explicit unsupported syntax error |
-| Parser rejected | `internal class A` in first prototype | parse error |
-| Modifier order | combinations with `abstract`, `final`, `readonly` | accepted or rejected according to chosen grammar, stable tests |
+| ID | Risk IDs | Category | Case | Expected |
+| --- | --- | --- | --- | --- |
+| T-SYN-001 | RISK-002 | Accepted | `private(namespace) class A {}` | Parses |
+| T-SYN-002 | RISK-003 | Accepted | `private(namespace) interface I {}` | Parses |
+| T-SYN-003 | RISK-003 | Accepted | `private(namespace) trait T {}` | Parses |
+| T-SYN-004 | RISK-003 | Accepted | `private(namespace) enum E { case A; }` | Parses |
+| T-SYN-005 | RISK-001 | Rejected | `protected(namespace) class A {}` | Parse/compile error in v1 |
+| T-SYN-006 | RISK-002 | Rejected | `private class A {}` | Not accepted by this RFC |
+| T-SYN-007 | RISK-017 | Rejected | `internal class A {}` | Not accepted by this RFC |
+| T-SYN-008 | RISK-006 | Rejected | `private(namespace: \A) class B {}` | Unsupported syntax |
+| T-SYN-009 | RISK-003 | Rejected | `new private(namespace) class {}` | Unsupported on anonymous class |
+| T-SYN-010 | RISK-002 | Rejected | Duplicate namespace visibility | Stable error |
 
-## Basic Visibility
+## Exact Namespace
 
-| Category | Declaration | Caller | Expected |
+| ID | Risk IDs | Declaration | Caller | Expected |
+| --- | --- | --- | --- | --- |
+| T-EXACT-001 | RISK-004 | `Acme\Billing\private(namespace) A` | `Acme\Billing` same file | Allowed |
+| T-EXACT-002 | RISK-004 | same | `Acme\Billing` other file | Allowed |
+| T-EXACT-003 | RISK-006 | same | `Acme\Billing\App` | Denied |
+| T-EXACT-004 | RISK-006 | same | `Acme` | Denied |
+| T-EXACT-005 | RISK-006 | same | `Acme\Other` | Denied |
+| T-EXACT-006 | RISK-006 | same | `Acme\BillingExtra` | Denied |
+| T-EXACT-007 | RISK-013 | global declaration | global caller | Allowed |
+| T-EXACT-008 | RISK-013 | global declaration | named caller | Denied |
+| T-EXACT-009 | RISK-013 | named declaration | global caller | Denied |
+| T-EXACT-010 | RISK-004 | `Foo\Bar` declaration | `foo\bar` caller | Allowed after normalization |
+| T-EXACT-011 | RISK-004 | `Acme\Billing` declaration | alias-importing caller in `App` | Denied |
+| T-EXACT-012 | RISK-004 | bracketed namespace | same normalized namespace | Allowed |
+| T-EXACT-013 | RISK-004 | multiple blocks same namespace | same normalized namespace | Allowed |
+
+## Lexical Caller
+
+| ID | Risk IDs | Case | Expected |
 | --- | --- | --- | --- |
-| Private same namespace | `Acme\Billing\private(namespace) A` | `Acme\Billing` | allowed |
-| Private child namespace | same | `Acme\Billing\App` | denied |
-| Private sibling namespace | same | `Acme\Other` | denied |
-| Protected same namespace | `Acme\Billing\protected(namespace) B` | `Acme\Billing` | allowed |
-| Protected child namespace | same | `Acme\Billing\App` | allowed |
-| Protected grandchild namespace | same | `Acme\Billing\App\Job` | allowed |
-| Protected sibling namespace | same | `Acme\Other` | denied |
-| Segment false positive | declaration `Acme\Billing` | caller `Acme\BillingExtra` | denied |
-| Segment false positive | declaration `Acme\Billing` | caller `Acme\Bill` | denied |
-| Global private | global declaration | global caller | allowed |
-| Global private | global declaration | named caller | denied |
-| Global protected | global declaration | named caller | depends on DEC-011; must not become public accidentally |
+| T-LEX-001 | RISK-004 | Named function in allowed namespace called from denied namespace | Allowed |
+| T-LEX-002 | RISK-004 | Named function in denied namespace called from allowed namespace | Denied |
+| T-LEX-003 | RISK-004 | Method declared in allowed namespace called from denied namespace | Allowed |
+| T-LEX-004 | RISK-004 | Closure declared in allowed namespace called from denied namespace | Allowed |
+| T-LEX-005 | RISK-004 | Arrow function declared in denied namespace called from allowed namespace | Denied |
+| T-LEX-006 | RISK-004 | `Closure::bind()` changes `$this`/scope | Does not change caller namespace |
+| T-LEX-007 | RISK-004 | `eval()` without namespace inside allowed namespace | Global caller |
+| T-LEX-008 | RISK-004 | `eval()` with namespace declaration | Declared eval namespace |
+| T-LEX-009 | RISK-012 | Trait body declared in allowed namespace used by denied class | Allowed for body operation |
+| T-LEX-010 | RISK-012 | Trait body declared in denied namespace used by allowed class | Denied for body operation |
+| T-LEX-011 | RISK-012 | Restricted trait use from denied class namespace | Denied |
+| T-LEX-012 | RISK-004 | Inherited method containing restricted access | Uses inherited method body namespace |
 
-## Class-like Kinds
+## Semantic Operations
 
-| Kind | Must test |
-| --- | --- |
-| class | construction, static access, inheritance |
-| abstract class | inheritance and reflection |
-| final class | construction and no modifier conflict |
-| readonly class | modifier ordering |
-| interface | implements and interface extends |
-| trait | trait use and operations inside trait method |
-| enum | enum cases, static access, `enum_exists()` |
-| anonymous class | modifier rejected |
+| ID | Risk IDs | Operation | Expected |
+| --- | --- | --- | --- |
+| T-OP-001 | RISK-004 | `new C()` | Checked |
+| T-OP-002 | RISK-004 | `new $class` | Checked |
+| T-OP-003 | RISK-004 | `C::method()` | Checked |
+| T-OP-004 | RISK-004 | `C::$property` | Checked |
+| T-OP-005 | RISK-004 | `C::CONST` | Checked |
+| T-OP-006 | RISK-014 | `C::class` | Produces string, no check |
+| T-OP-007 | RISK-004 | `extends C` | Checked |
+| T-OP-008 | RISK-004 | `implements I` | Checked |
+| T-OP-009 | RISK-004 | `interface A extends I` | Checked |
+| T-OP-010 | RISK-012 | `use T` in class | Checked from consuming namespace |
+| T-OP-011 | RISK-014 | `instanceof C` | Checked when CE resolved |
+| T-OP-012 | RISK-014 | `catch (C $e)` | Checked when CE resolved |
+| T-OP-013 | RISK-011 | Parameter type | Checked at type CE resolution |
+| T-OP-014 | RISK-011 | Return type | Checked at type CE resolution |
+| T-OP-015 | RISK-011 | Property type | Checked at type CE resolution |
+| T-OP-016 | RISK-011 | Typed class constant | Checked at type CE resolution |
+| T-OP-017 | RISK-011 | Promoted property | Checked at type CE resolution |
+| T-OP-018 | RISK-011 | Union/intersection/DNF | Each class-like component checked |
+| T-OP-019 | RISK-004 | Attribute class | Checked on attribute instantiation/validation |
+| T-OP-020 | RISK-014 | Class name inside attribute argument via `::class` | String, later use checked |
+| T-OP-021 | RISK-004 | First-class callable | Checked |
+| T-OP-022 | RISK-004 | String callable | Checked at resolution/invocation |
+| T-OP-023 | RISK-004 | Array callable | Class-string target checked |
+| T-OP-024 | RISK-004 | `Closure::fromCallable()` | Checked |
+| T-OP-025 | RISK-004 | `call_user_func()` | Checked |
+| T-OP-026 | RISK-004 | `is_callable()` | No capability; inaccessible class-string callable must not invoke |
+| T-OP-027 | RISK-014 | `class_exists()` family | May reveal existence, no capability |
+| T-OP-028 | RISK-014 | `is_a()` / `is_subclass_of()` | Checked when class-string target is semantic use |
+| T-OP-029 | RISK-014 | `method_exists()` / `property_exists()` | Metadata probe, no capability |
+| T-OP-030 | RISK-015 | `class_alias()` | Alias preserves CE visibility |
+| T-OP-031 | RISK-010 | `ReflectionClass` | Metadata allowed |
+| T-OP-032 | RISK-010 | Reflection instantiation | Checked |
+| T-OP-033 | RISK-004 | Serialization | Existing object allowed |
+| T-OP-034 | RISK-004 | Unserialization | Checked before restricted object allocation |
+| T-OP-035 | RISK-004 | Cloning existing object | Allowed by class-level visibility |
+| T-OP-036 | RISK-004 | `__set_state` static call | Checked as static access |
+| T-OP-037 | RISK-008 | Direct `require` | Load does not grant access |
+| T-OP-038 | RISK-008 | Preload | No semantic widening |
 
-## Operations
+## Cache and OPcache
 
-| Operation | Required tests |
-| --- | --- |
-| `new ClassName()` | allowed/denied for static name |
-| `new $className()` | allowed/denied dynamic string |
-| `ClassName::method()` | class visibility before method call |
-| `ClassName::$property` | class visibility before static property access |
-| `ClassName::CONSTANT` | class visibility before class constant access |
-| `ClassName::class` | chosen policy, no accidental autoload unless specified |
-| first-class callable | allowed/denied resolution |
-| string callable | allowed/denied through `call_user_func()` |
-| array callable | allowed/denied class-string and object forms |
-| `Closure::fromCallable()` | access checked at resolution |
-| `is_callable()` | chosen false/throw behavior |
-| `extends` | allowed same namespace, denied external |
-| `implements` | allowed/denied restricted interface |
-| `interface extends` | allowed/denied restricted interface |
-| `trait use` | allowed/denied restricted trait |
-| `instanceof` | chosen loaded/unloaded behavior |
-| `catch` | chosen loaded/unloaded behavior |
-| parameter type | allowed/denied type name use |
-| return type | allowed/denied type name use |
-| property type | allowed/denied type name use |
-| typed class constant | allowed/denied type name use |
-| union/intersection/DNF | each class-like component checked |
-| promoted property | type name checked |
-| attributes | class-name arguments and attribute class instantiation |
-| `class_exists()` family | existence policy |
-| `is_a()` / `is_subclass_of()` | existence vs use policy |
-| `method_exists()` / `property_exists()` | probing policy |
-| `defined()` for class constants | probing policy |
-| `class_alias()` | alias preserves CE visibility |
-| ReflectionClass | metadata visible |
-| `ReflectionClass::newInstance()` | construction checked or documented bypass |
-| `ReflectionMethod::invoke()` | no runtime membrane beyond member rules |
-| `serialize()` | existing object allowed |
-| `unserialize()` | class-name construction policy |
-| `__set_state()` | class-name use through eval |
-| clone existing object | allowed |
-| preload | same as non-preload |
-| OPcache | same as no OPcache |
-| direct `require` | load does not grant access |
-| autoload side effects | autoload can run before denial; caller remains original |
-
-## Cache Order
-
-Every operation that can cache a CE must have order tests:
-
-1. allowed use first, denied use second;
-2. denied use first, allowed use second.
-
-Expected:
-
-- first allowed use must not make later denied use succeed;
-- first denied use must not poison later allowed use;
-- alias and runtime cache variants must behave the same.
+| ID | Risk IDs | Case | Expected |
+| --- | --- | --- | --- |
+| T-CACHE-001 | RISK-008 | Allowed namespace loads first, denied uses cached CE | Denied |
+| T-CACHE-002 | RISK-008 | Denied namespace fails first, allowed later uses CE | Allowed |
+| T-CACHE-003 | RISK-008 | Alias created before denied access | Denied semantic use |
+| T-CACHE-004 | RISK-008 | OPcache already contains class | Same as no OPcache |
+| T-CACHE-005 | RISK-008 | Preloaded restricted class | Same as non-preload |
+| T-CACHE-006 | RISK-008 | Two separate op_arrays | Caller namespace checked independently |
+| T-CACHE-007 | RISK-008 | ZTS build where available | Same semantics |
 
 ## Error Assertions
 
-Tests should assert stable exception/error type and message text, but not
-absolute file paths. Preferred runtime message form:
-
-```text
-Cannot access private(namespace) class Acme\Billing\Internal\Service from namespace App\Controller
-```
-
+Tests should assert stable error type and message text, not absolute paths.
+Runtime violations throw `Error`. Compile/link failures may use existing PHP
+fatal paths.

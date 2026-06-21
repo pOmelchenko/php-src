@@ -1,57 +1,42 @@
 # Open Questions
 
-## Semantics
+For the exact-only RFC v1 model, no semantic question remains unresolved. Items
+from the first phase are now either resolved, deferred, accepted, or assigned to
+an implementation gate.
 
-- Should namespace comparison be case-insensitive and canonicalized to lowercase
-  for checks, while preserving original spelling for diagnostics?
-- Should `protected(namespace)` be rejected in the global namespace, or treated
-  as exact global access?
-- Should `SomeClass::class` be checked, or should it remain a pure string
-  operation with checks deferred until class-string use?
-- Should `class_exists()` and related existence probes reveal restricted
-  symbols?
-- Should `is_callable()` return `false` or throw for inaccessible class-string
-  callables?
-- How should `catch (Restricted $e)` behave when the restricted class is not
-  loaded, given current no-autoload catch behavior?
-- Should `instanceof Restricted` enforce class-like visibility if current PHP
-  avoids autoload for literal RHS?
+## Closed for RFC v1
 
-## Public API
+| Question | Disposition | Decision |
+| --- | --- | --- |
+| Namespace comparison case handling | RESOLVED | Normalize using class-like lookup case semantics |
+| Global namespace | RESOLVED | Empty string exact namespace |
+| `SomeClass::class` | RESOLVED | String production, no access check or autoload |
+| Existence probes | RESOLVED | May reveal existence, no capability |
+| Reflection construction | RESOLVED | Metadata allowed; construction checked |
+| Alias behavior | RESOLVED | CE metadata preserved |
+| Error timing | RESOLVED | Check after target CE resolution |
+| Runtime membrane | RESOLVED | Not an object membrane |
 
-- Should public APIs be forbidden from exposing restricted types?
-- If yes, when can this be checked without forcing new autoload behavior?
-- How should variance checks handle restricted parent/interface types?
-- Can a public class extend a restricted parent if the declaration namespace is
-  allowed?
-- Can external code extend that public child without naming the restricted
-  parent?
+## Deferred from RFC v1
 
-## Runtime and Engine
+| Question | Disposition | Future work |
+| --- | --- | --- |
+| Descendant namespace visibility | DEFERRED | RFC B |
+| Explicit root syntax | DEFERRED | RFC C |
+| `protected(namespace)` meaning | DEFERRED | Separate inheritance/descendant syntax decision |
+| Native consistent accessibility | DEFERRED | Separate RFC after type/autoload analysis |
+| Module/package `internal` | DEFERRED | Module/package RFC |
+| Friend namespaces | DEFERRED | Friend/package visibility RFC |
 
-- What exact structure should carry lexical caller namespace for top-level code,
-  functions, closures, methods, eval, and internal callback paths?
-- Can class-like checks reuse PR #20421's `op_array->namespace_name`, or should
-  they use class/function scope information differently?
-- Which runtime caches need caller namespace in their key or a late check on
-  cache hit?
-- Should reflection construction be privileged or access-checked?
-- How should unserialize choose caller namespace for restricted class payloads?
+## Implementation Gates
 
-## Syntax and Scope
+The following are not semantic open questions. They are implementation gates:
 
-- Should `protected(namespace: Root)` be in the first RFC or Future Scope only?
-- Should interfaces, traits, and enums all be included in the first RFC?
-- Should namespace visibility later apply to functions and constants?
-- Should `internal` be reserved explicitly for future modules/packages?
-- How should modifiers order with `abstract`, `final`, and `readonly` be
-  constrained in grammar?
+- carry lexical namespace through top-level code, closures, arrow functions,
+  eval, class linking, internal functions, and Reflection;
+- preserve trait declaration namespace for operations written in trait bodies;
+- check all class-entry cache hit paths;
+- validate OPcache/preload/JIT parity;
+- measure public fast-path overhead.
 
-## Process
-
-- Is this better as a new RFC, or as a successor to the old
-  `namespace-visibility` draft?
-- How should it coordinate with the under-discussion methods/properties RFC?
-- What PHP version could realistically accept an ABI-impacting class-entry
-  metadata change?
-
+See [../07-risk-closure/14-implementation-gates.md](../07-risk-closure/14-implementation-gates.md).

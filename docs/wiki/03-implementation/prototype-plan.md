@@ -1,5 +1,10 @@
 # Prototype Plan
 
+Phase 2 narrows the RFC target to exact-only `private(namespace)` on named
+class-like declarations. The existing Phase B/C spike remains useful evidence,
+but it is not the selected RFC v1 implementation because it still accepts and
+partially implements descendant `protected(namespace)`.
+
 ## Phase A: Research Base
 
 Status: done for this documentation iteration.
@@ -19,11 +24,12 @@ Tasks:
 
 Goal: accept syntax and store metadata, without claiming complete enforcement.
 
-Status: committed as `af9e9790f52`.
+Status: committed as `af9e9790f52`; incomplete for exact-only RFC v1.
 
 Tasks:
 
-- recognize `private(namespace)` and `protected(namespace)`;
+- recognize `private(namespace)`;
+- reject `protected(namespace)` for class-like declarations in RFC v1;
 - reject explicit root syntax in this phase;
 - reject namespace visibility on anonymous classes;
 - add AST/class flags for class-like namespace visibility;
@@ -60,6 +66,13 @@ Current implementation notes:
 - OPcache persistence calculation/store paths include the new class-entry
   string, but runtime OPcache behavior has not been tested yet.
 
+Required before Gate 2 for RFC v1:
+
+- remove or reject class-level `protected(namespace)`;
+- store a normalized declaring namespace for checks;
+- decide whether diagnostic spelling is stored separately;
+- update tokenizer/parser PHPT expectations for exact-only syntax.
+
 ## Phase C: Central Access Check
 
 Goal: one authoritative class-like visibility check.
@@ -75,7 +88,7 @@ The central function should receive:
 
 Tasks:
 
-- implement exact private and descendant protected comparisons;
+- implement exact private comparison only for RFC v1;
 - add fast path for unrestricted classes;
 - define global namespace behavior;
 - define case-normalization behavior;
@@ -83,17 +96,18 @@ Tasks:
 - wire into a minimal runtime path such as `new ClassName()`;
 - add PHPTs for allowed/denied same/child/sibling/prefix cases.
 
-Completed so far:
+Completed so far in the experimental spike:
 
 - central fast-path check for unrestricted classes;
 - exact private namespace comparison;
-- protected descendant comparison by full namespace segment;
+- protected descendant comparison by full namespace segment, which is now
+  Future Scope and not RFC v1 behavior;
 - stable runtime `Error` message without absolute paths;
 - checks wired into `ZEND_NEW` and `ZEND_FETCH_CLASS`;
 - targeted tests for static `new`, dynamic `new $class`, method caller
   namespace, segment-prefix false positives, and cache order.
 
-Known incomplete paths:
+Known incomplete paths for RFC v1:
 
 - caller namespace is derived from named function/method metadata, not from a
   full lexical per-operation source;
@@ -102,6 +116,12 @@ Known incomplete paths:
   require a stronger caller namespace design;
 - inheritance, static access, types, aliases, Reflection construction, OPcache,
   preload, and JIT are not complete.
+
+Additional exact-only fixes required:
+
+- normalize namespace comparisons according to class-like lookup semantics;
+- preserve original trait declaration namespace for trait body operations;
+- ensure `protected(namespace)` tests are moved out of v1 or marked future.
 
 ## Phase D: Complete Access Coverage
 
@@ -141,13 +161,16 @@ Tasks:
 - audit JIT known-class helpers;
 - verify invalidation and stale cache behavior.
 
-## Phase F: Explicit Root
+## Phase F: Subtree and Explicit Root Future Scope
 
-Goal: evaluate and implement only after base semantics stabilize.
+Goal: evaluate descendant namespace and explicit root only after RFC v1
+semantics pass Gates 1 through 5.
 
 Tasks:
 
-- parse `protected(namespace: \Root)`;
+- choose descendant syntax without assuming `protected(namespace)`;
+- parse selected subtree syntax;
+- parse explicit root syntax;
 - validate root is declaration namespace or ancestor;
 - reject unrelated roots;
 - decide global-root behavior;

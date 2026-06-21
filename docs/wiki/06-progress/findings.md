@@ -3,7 +3,9 @@
 ## Repository and Environment
 
 - The current repository is php-src.
-- Commit inspected: `0fff3ccce2f5f9e0695502a509fa8e8edf8f77d4`.
+- Initial commit inspected: `0fff3ccce2f5f9e0695502a509fa8e8edf8f77d4`.
+- Phase 2 documentation commit base inspected:
+  `1c1d3a699c624030ca0582daedfebcba723c8ddc`.
 - Branch inspected: `packages`.
 - PHP version header reports `8.6.0-dev`.
 - Local build environment is not ready for parser or PHPT work:
@@ -31,10 +33,17 @@
 - The most practical first boundary is name use, not runtime membrane.
 - Lexical caller namespace is essential.
 - `private(namespace)` exact match is straightforward.
-- `protected(namespace)` descendant access is straightforward except for global
-  namespace and case normalization.
-- `::class`, reflection construction, existence probes, and consistent
-  accessibility remain the largest semantic questions.
+- `protected(namespace)` must not be used for descendant access in RFC v1
+  because it conflicts with the active member RFC's Future Scope for namespace
+  plus inheritance visibility.
+- Namespace descendants and explicit root are useful but deferred.
+- `::class`, Reflection construction, existence probes, aliases, autoload side
+  effects, global namespace, and public API exposure now have explicit v1
+  dispositions.
+- Namespace comparisons for class-like visibility must normalize case according
+  to class-like lookup semantics.
+- Trait body operations should use the trait declaration namespace; current
+  php-src trait scope fixup means implementation needs extra metadata.
 
 ## Implementation
 
@@ -108,3 +117,17 @@ part.
   namespace metadata that handles top-level namespace blocks, closures, arrow
   functions, eval, and `Closure::bind()`.
 - No OPcache, preload, or JIT behavior has been validated for enforcement yet.
+
+## Phase 2 Risk-Closure Findings
+
+- The selected first RFC is Scope B: exact-only `private(namespace)` for named
+  class-like declarations.
+- The risk register contains 10 RESOLVED, 3 MITIGATED, 2 DEFERRED,
+  2 ACCEPTED, and 0 BLOCKED risks.
+- Performance evidence is NOT MEASURED.
+- The current C prototype is incomplete for the selected v1 because it accepts
+  `protected(namespace)`, implements descendant semantics, stores namespace
+  spelling without normalized comparison metadata, and covers only a small
+  runtime slice.
+- Gate 1 is closed at the documentation level. Gates 2 through 5 are not passed
+  for the selected v1 implementation.

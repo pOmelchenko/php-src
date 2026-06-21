@@ -195,6 +195,6 @@ Relevant process facts:
 
 Implication for this work:
 
-- The draft in [../05-rfc/draft.md](../05-rfc/draft.md) uses `Author: TBD`.
+- The draft in [../05-rfc/draft.md](../05-rfc/draft.md) is an unassigned
+  research draft.
 - This repository must not present the working model as accepted.
-
