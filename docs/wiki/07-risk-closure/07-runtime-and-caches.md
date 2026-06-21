@@ -32,8 +32,8 @@ The implementation must find every path that produces or reuses a
 | --- | --- | --- | --- | --- | --- |
 | `ZEND_NEW` | `new C`, `new $class`, cached `new` | Yes; rechecks cache hits | Existing Phase C `new` tests | No | GATE 3 IMPLEMENTED |
 | `ZEND_FETCH_CLASS` | Dynamic class fetch and some static prep | Yes; VM handlers pass current lexical namespace explicitly | Existing dynamic tests | No | GATE 3 IMPLEMENTED |
-| Static handlers | static method/property/constant | Yes; constant folding also refuses inaccessible restricted constants | `ns_visibility_gate3_operations.phpt` | Planned | GATE 3 IMPLEMENTED |
-| Inheritance/linking | `extends`, `implements`, trait `use` | Yes for runtime link and early-bind fallback | `ns_visibility_gate3_operations.phpt` | Planned | GATE 3 IMPLEMENTED |
+| Static handlers | static method/property/constant | Yes; constant folding and OPcache optimizer shortcuts refuse inaccessible restricted constants/classes | `ns_visibility_gate3_operations.phpt` | `ns_visibility_opcache_cli.phpt`, `ns_visibility_opcache_file_cache.phpt`, `ns_visibility_preload.phpt` | GATE 4 IMPLEMENTED |
+| Inheritance/linking | `extends`, `implements`, trait `use` | Yes for runtime link, early-bind fallback, inheritance cache reuse, and preload linking | `ns_visibility_gate3_operations.phpt` | `ns_visibility_opcache_cli.phpt`, `ns_visibility_preload_linking.phpt` | GATE 4 IMPLEMENTED |
 | Type resolution | parameter, return, property, promoted property, class constant, union/intersection/DNF | Yes when resolved to CE | `ns_visibility_gate3_type_positions.phpt` | Planned | GATE 3 IMPLEMENTED |
 | `instanceof`/`catch` | runtime type checks | Yes; `catch` reports access without throwing on top of active exception | `ns_visibility_gate3_operations.phpt` | Planned | GATE 3 IMPLEMENTED |
 | Callables | first-class/string/array/call_user_func | Yes for class-string validation and invocation; object callables remain object/member semantics | `ns_visibility_gate3_callables_reflection_serialization.phpt` | Planned | GATE 3 IMPLEMENTED |
@@ -41,10 +41,12 @@ The implementation must find every path that produces or reuses a
 | Reflection | metadata and construction | Metadata allowed; ReflectionClass instantiation checked | `ns_visibility_gate3_callables_reflection_serialization.phpt` | Planned | GATE 3 IMPLEMENTED |
 | Aliases | `class_alias()` | Metadata belongs to CE; alias use still checks | `ns_visibility_gate3_callables_reflection_serialization.phpt` | Planned | GATE 3 IMPLEMENTED |
 | Unserialize | payload class names | Yes before object allocation | `ns_visibility_gate3_callables_reflection_serialization.phpt` | Planned | GATE 3 IMPLEMENTED |
-| OPcache/preload/JIT | optimized/persistent CE | Metadata persistence updated; behavioral validation deferred | Not run | Planned | GATE 4+ |
+| OPcache/preload | optimized/persistent CE | Shared-memory and file-cache metadata persisted; optimizer restricted-CE shortcuts guarded; preload metadata/linking validated | Gate 3 base tests | `ns_visibility_opcache_cli.phpt`, `ns_visibility_opcache_namespace_ranges.phpt`, `ns_visibility_opcache_file_cache.phpt`, `ns_visibility_preload.phpt`, `ns_visibility_preload_linking.phpt` | GATE 4 IMPLEMENTED |
+| JIT | optimized class fetch/static paths | Deferred | Not run | Not run | DEFERRED |
 
-`GATE 3 IMPLEMENTED` means the C prototype has targeted PHPT coverage for the
-semantic path without claiming OPcache/preload/JIT or benchmark completion.
+`GATE 4 IMPLEMENTED` means the C prototype has targeted PHPT coverage for the
+semantic path with OPcache/preload enabled, without claiming JIT or benchmark
+completion.
 
 ## Acceptance Criterion
 
@@ -57,7 +59,9 @@ Therefore:
 - CE cache hits from `zend_lookup_class_ex()` must be followed by access checks
   in semantic callers;
 - class-table alias entries must point to the same restricted CE metadata;
-- OPcache persistent classes must store the metadata;
+- OPcache persistent and file-cache classes must store the metadata;
+- OPcache optimizer shortcuts must not turn denied restricted CE use into a
+  precomputed success;
 - preload must not turn a restricted CE into a public CE;
 - JIT must not replace a checked class fetch with an unchecked CE constant for
-  restricted classes.
+  restricted classes. This remains the next cache-related validation item.

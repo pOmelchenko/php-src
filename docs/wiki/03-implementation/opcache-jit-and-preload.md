@@ -2,22 +2,28 @@
 
 ## Metadata Persistence
 
-If namespace visibility metadata is stored on `zend_class_entry`, OPcache must
-persist and restore it in:
+Namespace visibility metadata stored on `zend_class_entry` is persisted and
+restored in:
 
 - `ext/opcache/zend_persist.c`;
 - `ext/opcache/zend_persist_calc.c`.
 
-Likely additions:
+The file-cache path also serializes/deserializes
+`zend_class_entry::namespace_visibility_namespace` in
+`ext/opcache/zend_file_cache.c`. `ce_flags2` survives as part of the serialized
+class-entry body.
 
-- count and persist declaration namespace string;
-- count and persist effective visibility root string if explicit root is later
-  supported;
-- ensure strings are interned consistently;
-- ensure `class_alias()` sharing of the same CE preserves metadata.
+Caller namespace metadata on `zend_op_array` is persisted for:
 
-If caller namespace is stored on `zend_op_array`, the same persistence work is
-needed for op arrays. PR #20421 is useful prior art here.
+- `lexical_namespace`;
+- `last_namespace_range`;
+- `namespace_ranges` and each range's namespace string.
+
+The optimizer must not replace a denied restricted class operation with a
+precomputed result. Gate 4 adds an optimizer-side silent visibility check for
+restricted CEs used by class-constant and static-method helpers. For top-level
+op_arrays with namespace ranges, restricted CE optimization is conservative and
+falls back to runtime VM checks.
 
 ## Preload
 
@@ -36,6 +42,15 @@ Relevant local files:
 - preload dependency resolution around lines 3845-3874;
 - preload link path around line 4098;
 - trait method preload fix paths around lines 4340-4391.
+
+Gate 4 tests cover:
+
+- preloaded restricted class/interface/trait/enum metadata;
+- request-time denied semantic use from another namespace;
+- already obtained object operations;
+- allowed preload dependency linking;
+- denied preload dependency linking for `extends`, `implements`, interface
+  `extends`, and trait `use`.
 
 ## Inheritance Cache
 
@@ -60,16 +75,18 @@ JIT known-class and helper paths must not bypass visibility checks:
   around line 188.
 
 If JIT substitutes a known CE for a class fetch, it must either prove the CE is
-unrestricted or preserve a runtime check for restricted CEs.
+unrestricted or preserve a runtime check for restricted CEs. This remains
+explicitly deferred after Gate 4.
 
 ## Cache Invalidation
 
 Restrictions are declaration metadata. OPcache invalidation should follow normal
-script invalidation when the declaring file changes. Tests must compare:
+script invalidation when the declaring file changes. Gate 4 tests compare:
 
-- OPcache disabled;
 - OPcache enabled;
+- OPcache file-cache replay;
 - preload where available;
 - allowed-then-denied order;
 - denied-then-allowed order.
 
+JIT stays excluded from these tests by setting `opcache.jit=0`.

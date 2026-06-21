@@ -835,19 +835,41 @@ zend_class_entry *zend_optimizer_get_class_entry(
 
 zend_class_entry *zend_optimizer_get_class_entry_from_op1(
 		const zend_script *script, const zend_op_array *op_array, const zend_op *opline) {
+	zend_class_entry *ce = NULL;
+
 	if (opline->op1_type == IS_CONST) {
 		const zval *op1 = CRT_CONSTANT(opline->op1);
 		if (Z_TYPE_P(op1) == IS_STRING) {
-			return zend_optimizer_get_class_entry(script, op_array, Z_STR_P(op1 + 1));
+			ce = zend_optimizer_get_class_entry(script, op_array, Z_STR_P(op1 + 1));
 		}
 	} else if (opline->op1_type == IS_UNUSED && op_array->scope
 			&& !(op_array->scope->ce_flags & ZEND_ACC_TRAIT)
 			&& ((opline->op1.num & ZEND_FETCH_CLASS_MASK) == ZEND_FETCH_CLASS_SELF
 				|| ((opline->op1.num & ZEND_FETCH_CLASS_MASK) == ZEND_FETCH_CLASS_STATIC
 					&& (op_array->scope->ce_flags & ZEND_ACC_FINAL)))) {
-		return op_array->scope;
+		ce = op_array->scope;
+	}
+
+	if (ce && zend_optimizer_class_visible_from_opline(op_array, opline, ce)) {
+		return ce;
 	}
 	return NULL;
+}
+
+bool zend_optimizer_class_visible_from_opline(
+		const zend_op_array *op_array, const zend_op *opline, const zend_class_entry *ce)
+{
+	if (!ce || !(ce->ce_flags2 & ZEND_ACC2_NAMESPACE_RESTRICTED)) {
+		return true;
+	}
+	if (op_array && op_array->last_namespace_range > 0) {
+		return false;
+	}
+
+	return zend_check_class_namespace_visibility_from(
+		ce,
+		zend_get_op_array_lexical_namespace_at(op_array, opline),
+		ZEND_CLASS_NAMESPACE_VISIBILITY_SILENT_FALSE);
 }
 
 const zend_class_constant *zend_fetch_class_const_info(
@@ -886,6 +908,9 @@ const zend_class_constant *zend_fetch_class_const_info(
 		}
 	}
 	if (!ce || (ce->ce_flags & ZEND_ACC_TRAIT)) {
+		return NULL;
+	}
+	if (!zend_optimizer_class_visible_from_opline(op_array, opline, ce)) {
 		return NULL;
 	}
 	zend_class_constant *const_info = zend_hash_find_ptr(&ce->constants_table, Z_STR_P(CRT_CONSTANT(opline->op2)));

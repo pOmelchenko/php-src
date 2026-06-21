@@ -97,3 +97,14 @@
   keeping namespace comparisons case-insensitive internally.
 - Verified Docker debug build, 6/6 focused Gate 3 PHPT tests, and 18/18 broad
   `ns_visibility_*.phpt` plus tokenizer tests.
+- Implemented Gate 4 OPcache/preload validation.
+- Persisted `zend_class_entry::namespace_visibility_namespace` through OPcache
+  file-cache serialization/deserialization.
+- Added optimizer-side restricted-CE visibility checks for class constants and
+  static method resolution, with conservative runtime fallback for op_arrays
+  that use namespace ranges.
+- Added five OPcache/preload PHPTs for OPcache CLI cache order, namespace
+  ranges, file-cache replay, preload metadata, and preload dependency linking.
+- Verified Docker debug build and 5/5 focused Gate 4 OPcache/preload PHPTs
+  with `opcache.jit=0`; then verified the combined Gate 3/Gate 4
+  namespace-visibility run at 23/23 passed. JIT remains deferred.

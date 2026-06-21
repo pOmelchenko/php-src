@@ -42,7 +42,9 @@ Required:
 - aliases do not remove visibility;
 - direct `require` does not bypass checks.
 
-Status: **Not passed**. Phase C covers only `new`/`ZEND_FETCH_CLASS` basics.
+Status: **Passed in the Docker debug build**. Gate 3 covers VM class-name
+semantic operations, linking, type positions, callables, Reflection allocation,
+aliases, direct require, and serialization with targeted PHPT coverage.
 
 ## Gate 4: OPcache and Preload
 
@@ -54,8 +56,11 @@ Required:
 - cache invalidation correct;
 - tests run with OPcache on/off.
 
-Status: **Not passed**. OPcache persistence was touched in Phase B, but v1
-semantic behavior with OPcache/preload has not been verified.
+Status: **Passed for OPcache/preload in the Docker debug build**. Gate 4
+persists class and lexical caller metadata through OPcache shared memory and
+file cache, keeps optimizer class-constant/static-method shortcuts from
+bypassing restricted CEs, validates OPcache CLI and file-cache replay, and
+validates preload metadata plus dependency linking. JIT remains outside Gate 4.
 
 ## Gate 5: Performance
 
@@ -83,9 +88,9 @@ Status: **Partially passed for documentation**, **not passed for voting**.
 
 ## Kill Criteria Applied
 
-The C prototype is marked incomplete because:
+The C prototype is still marked incomplete because:
 
-- it does not enforce every operation promised by the symbol-visibility model;
-- static access, inheritance, types, Reflection, aliases, OPcache/preload, and
-  `instanceof`/`catch` are not fully covered;
-- performance is not measured.
+- Gate 5 performance is not measured;
+- JIT behavior remains deferred to a separate validation/fix gate;
+- remaining RFC-readiness work must reconcile documentation, generated
+  artifacts, and broader test coverage outside the focused prototype slices.
