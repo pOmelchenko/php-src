@@ -1780,26 +1780,29 @@ ZEND_API const zend_string *zend_get_current_lexical_namespace(void)
 static bool zend_is_namespace_visibility_allowed(
 		const zend_class_entry *ce, const zend_string *caller_namespace)
 {
-	zend_string *declaration_namespace = zend_get_class_namespace_visibility_root(ce);
-	bool allowed;
+	const char *declaration_name = ZSTR_VAL(ce->name);
+	const char *separator = zend_memrchr(declaration_name, '\\', ZSTR_LEN(ce->name));
+	size_t declaration_namespace_len = separator ? (size_t) (separator - declaration_name) : 0;
+	size_t caller_namespace_len = ZSTR_LEN(caller_namespace);
 
-	if (zend_string_equals(declaration_namespace, caller_namespace)) {
-		allowed = true;
-		goto out;
+	if (caller_namespace_len == declaration_namespace_len) {
+		return declaration_namespace_len == 0
+			|| zend_binary_strncasecmp(
+				ZSTR_VAL(caller_namespace), caller_namespace_len,
+				declaration_name, declaration_namespace_len,
+				declaration_namespace_len) == 0;
 	}
 
-	if ((ce->ce_flags2 & ZEND_ACC2_NAMESPACE_PROTECTED) && ZSTR_LEN(declaration_namespace) > 0) {
-		allowed = ZSTR_LEN(caller_namespace) > ZSTR_LEN(declaration_namespace)
-			&& ZSTR_VAL(caller_namespace)[ZSTR_LEN(declaration_namespace)] == '\\'
-			&& memcmp(ZSTR_VAL(caller_namespace), ZSTR_VAL(declaration_namespace), ZSTR_LEN(declaration_namespace)) == 0;
-		goto out;
+	if ((ce->ce_flags2 & ZEND_ACC2_NAMESPACE_PROTECTED) && declaration_namespace_len > 0) {
+		return caller_namespace_len > declaration_namespace_len
+			&& ZSTR_VAL(caller_namespace)[declaration_namespace_len] == '\\'
+			&& zend_binary_strncasecmp(
+				ZSTR_VAL(caller_namespace), caller_namespace_len,
+				declaration_name, declaration_namespace_len,
+				declaration_namespace_len) == 0;
 	}
 
-	allowed = false;
-
-out:
-	zend_string_release_ex(declaration_namespace, 0);
-	return allowed;
+	return false;
 }
 
 ZEND_API bool zend_check_class_namespace_visibility_from(
@@ -1807,8 +1810,6 @@ ZEND_API bool zend_check_class_namespace_visibility_from(
 		zend_class_namespace_visibility_failure_mode failure_mode)
 {
 	bool allowed;
-	zend_string *caller_lc_namespace = NULL;
-	const zend_string *caller_lc_namespace_ref;
 
 	if (!(ce->ce_flags2 & ZEND_ACC2_NAMESPACE_RESTRICTED)) {
 		return true;
@@ -1817,16 +1818,7 @@ ZEND_API bool zend_check_class_namespace_visibility_from(
 	if (!caller_namespace) {
 		caller_namespace = ZSTR_EMPTY_ALLOC();
 	}
-	if (ZSTR_LEN(caller_namespace) > 0) {
-		caller_lc_namespace = zend_string_tolower(caller_namespace);
-		caller_lc_namespace_ref = caller_lc_namespace;
-	} else {
-		caller_lc_namespace_ref = ZSTR_EMPTY_ALLOC();
-	}
-	allowed = zend_is_namespace_visibility_allowed(ce, caller_lc_namespace_ref);
-	if (caller_lc_namespace) {
-		zend_string_release_ex(caller_lc_namespace, 0);
-	}
+	allowed = zend_is_namespace_visibility_allowed(ce, caller_namespace);
 
 	if (!allowed) {
 		if (failure_mode == ZEND_CLASS_NAMESPACE_VISIBILITY_SILENT_FALSE) {

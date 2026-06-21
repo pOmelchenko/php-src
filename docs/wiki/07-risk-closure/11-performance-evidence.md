@@ -26,8 +26,15 @@ into a cold helper removed that spill. The after-fix paired run keeps
 `public_instanceof` under the accepted `<= 3%` public hot-path threshold in all
 four measured modes.
 
+The 2026-06-22 follow-up sweep removed the remaining per-check allocation from
+restricted namespace-visibility decisions. The public paired rows remain within
+the retained Gate 5 threshold after longer reruns for sub-nanosecond JIT rows.
+The restricted callable-validation row improves by 27-38% by paired median,
+with Callgrind showing a 23.14% instruction-count reduction for the OPcache/no
+JIT profile.
+
 Raw artifacts were kept outside the repository under
-`/tmp/nsvis-gate5-results/`.
+`/tmp/nsvis-gate5-results/` and `/tmp/nsvis-perf-pass-20260622/`.
 
 ## Artifacts
 
@@ -45,10 +52,21 @@ Raw artifacts were kept outside the repository under
 | `baseline-sizes.json`, `current-final-inline-restore-sizes.json` | Structure sizes |
 | `baseline-php-version.txt`, `current-final-inline-restore-php-version.txt` | Release binary versions |
 | `*-configure.log`, `*-make.log` | Build logs |
+| `nsvis-perf-pass-20260622/current-baseline.json` | Follow-up full current matrix at `96b5562` before the allocation removal |
+| `nsvis-perf-pass-20260622/after-allocation-removal.json` | Follow-up full matrix after the allocation removal |
+| `nsvis-perf-pass-20260622/paired-allocation-removal.json` | Seven-pair before/after public rows and targeted restricted rows |
+| `nsvis-perf-pass-20260622/paired-long-allocation-removal.json` | Longer paired reruns for noisy sub-10 ns public rows |
+| `nsvis-perf-pass-20260622/paired-static-method-1b/*` | Nine-pair 1B-iteration rerun for tracing-JIT `public_static_method` |
+| `nsvis-perf-pass-20260622/profiles/callgrind-*-opcache-nojit-*` | Follow-up Callgrind profiles for restricted rows |
+| `nsvis-perf-pass-20260622/profiles/cachegrind-*-private_allowed_callable_validation.out` | Follow-up Cachegrind pair for the main restricted callable target |
 
 Rejected experiments were also saved (`current-cachehit-global*`,
 `current-globalflag*`). They are not retained: the executor-global
-restricted-class flag worsened `instanceof`.
+restricted-class flag worsened `instanceof`. The 2026-06-22 sweep also rejected
+an optimizer/JIT namespace-range shortcut: using transformed optimizer oplines
+to prove restricted-class visibility caused
+`ext/opcache/tests/ns_visibility_opcache_namespace_ranges.phpt` to allow a
+consumer access that must throw, so the shortcut was reverted.
 
 ## Benchmark Record
 
@@ -57,6 +75,8 @@ restricted-class flag worsened `instanceof`.
 | Date | 2026-06-21 |
 | Baseline commit | `0fff3ccce2f5f9e0695502a509fa8e8edf8f77d4` |
 | Current commit | `6391d08d0cbc4f25d38e9ac60fe7873b0a47e785` plus local Gate 5 optimization, class-entry storage removal, `instanceof` cold miss helper, and docs edits |
+| Follow-up date | 2026-06-22 |
+| Follow-up current commit | `96b5562a1b9b05548bd50848640af4ed8e5f216f` plus local restricted-check allocation removal |
 | Container | `php-src-dev:bookworm` from `docker/dev/compose.yml` |
 | OS/CPU | Docker LinuxKit `6.12.76-linuxkit`, `aarch64`, 14 vCPU visible in container |
 | Compiler | `cc (Debian 12.2.0-14+deb12u1) 12.2.0` |
@@ -67,6 +87,11 @@ restricted-class flag worsened `instanceof`.
 | Long paired runs | Higher iterations for sub-10 ns rows, listed below |
 | Benchmark harness | `benchmark/ns_visibility_gate5.php` |
 | Structure size helper | `benchmark/ns_visibility_sizes.c` |
+
+The 2026-06-22 follow-up used the same Docker image and release NTS CLI build.
+It built saved before/after binaries from `96b5562` with and without the local
+allocation-removal patch, then ran alternating paired workers from those
+binaries. The follow-up artifacts live in `/tmp/nsvis-perf-pass-20260622/`.
 
 Representative command shape:
 
@@ -224,6 +249,102 @@ pointed away from class-entry storage and toward code layout. The disassembly
 then exposed the extra callee-saved register spill; after the helper split,
 Callgrind shows about two fewer hot-handler instructions per iteration.
 
+## 2026-06-22 Restricted Allocation Removal
+
+The follow-up sweep targeted the remaining allocation in restricted visibility
+checks. Before this change, the hot check lowercased the caller namespace and
+derived/lowercased the declaration namespace from `ce->name` on each restricted
+visibility decision. The retained change keeps
+`zend_get_class_namespace_visibility_root()` allocation-based for Reflection and
+diagnostics, but the allow/deny predicate now compares the caller namespace
+directly against the namespace prefix of `ce->name` with a case-insensitive
+segment-boundary check.
+
+The full matrix was run before and after the change. Because some JIT rows are
+sub-nanosecond and noisy, acceptance used alternating paired workers from saved
+before/after binaries.
+
+### Public Gate Follow-Up
+
+All standard-scale public paired rows stayed within the `<= 3%` public hot-path
+threshold. Rows that crossed the threshold or had high RSD in the short paired
+matrix were rerun with higher iteration counts:
+
+| Mode | Measurement | Iterations | Before | After | Delta | RSD before/after | Result |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| OPcache, no JIT | `public_class_constant` | 50000000 | 1.770 | 1.753 | -0.98% | 1.69% / 0.89% | Pass |
+| OPcache, tracing JIT | `public_static_method` | 1000000000 | 0.306 | 0.310 | +1.41% | 1.65% / 1.79% | Pass |
+| OPcache, tracing JIT | `public_static_property` | 300000000 | 0.597 | 0.594 | -0.52% | 0.51% / 0.86% | Pass |
+| OPcache, tracing JIT | `public_class_constant` | 300000000 | 0.306 | 0.305 | -0.26% | 3.03% / 2.37% | Pass |
+| OPcache, tracing JIT | `public_instanceof` | 50000000 | 2.238 | 2.264 | +1.15% | 5.19% / 4.08% | Pass/noisy |
+
+The remaining public rows in `paired-allocation-removal.json` were within the
+threshold in the short seven-pair matrix. The largest positive standard-scale
+public deltas were `public_instanceof` without OPcache at +2.37% and
+`public_autoload_hit` under tracing JIT at +1.95%.
+
+### Restricted Paired Rows
+
+Targeted restricted rows improved by paired median in all modes:
+
+| Mode | Measurement | Before | After | Delta | RSD before/after |
+| --- | --- | ---: | ---: | ---: | ---: |
+| no OPcache | `private_allowed_callable_validation` | 83.892 | 60.904 | -27.40% | 1.72% / 1.05% |
+| no OPcache | `private_denied_new` | 473.779 | 443.521 | -6.39% | 1.00% / 0.76% |
+| OPcache, no JIT | `private_allowed_callable_validation` | 54.155 | 34.889 | -35.58% | 4.77% / 0.82% |
+| OPcache, no JIT | `private_denied_new` | 457.608 | 430.146 | -6.00% | 1.22% / 1.85% |
+| OPcache, function JIT | `private_allowed_callable_validation` | 54.119 | 34.078 | -37.03% | 1.16% / 4.21% |
+| OPcache, function JIT | `private_denied_new` | 457.867 | 424.321 | -7.33% | 1.44% / 1.08% |
+| OPcache, tracing JIT | `private_allowed_callable_validation` | 51.952 | 32.294 | -37.84% | 0.57% / 2.58% |
+| OPcache, tracing JIT | `private_denied_new` | 458.433 | 426.771 | -6.91% | 0.98% / 1.31% |
+
+### Profiler Check
+
+Callgrind used OPcache/no-JIT workers with 100000 iterations. The small class
+operation rows save only the removed bookkeeping around the check; the main
+winner is callable validation, which repeats the restricted visibility check on
+every `is_callable()` probe.
+
+| Case | Before Ir | After Ir | Delta |
+| --- | ---: | ---: | ---: |
+| `private_allowed_new` | 60,068,640 | 60,056,616 | -0.02% |
+| `private_allowed_static_method` | 21,867,625 | 21,855,998 | -0.05% |
+| `private_allowed_static_property` | 26,468,602 | 26,456,632 | -0.05% |
+| `private_allowed_class_constant` | 21,867,658 | 21,856,000 | -0.05% |
+| `private_allowed_instanceof` | 27,468,703 | 27,456,660 | -0.04% |
+| `private_allowed_callable_validation` | 165,968,531 | 127,556,879 | -23.14% |
+| `protected_allowed_child_instanceof` | 27,469,087 | 27,457,078 | -0.04% |
+| `private_denied_new` | 712,167,603 | 653,457,523 | -8.24% |
+
+Before the change, `zend_string_tolower_ex` accounted for 32,151,591 Ir
+(19.37%) in the OPcache/no-JIT `private_allowed_callable_validation` profile.
+It does not appear in the after profile at the same threshold.
+
+Cachegrind for the same callable-validation worker shows total Ir moving from
+165,983,266 to 127,571,622 (-23.14%). Data reads plus writes move from
+70,991,225 to 55,386,484 (-21.98%). Cachegrind could not auto-detect the host
+cache geometry in the container, so the cache-miss counters are retained as
+artifacts but not used for the acceptance claim.
+
+### Rejected Follow-Up Candidates
+
+The namespace-range lookup itself was not changed: profiling did not identify
+range lookup as a material cost in the retained benchmarks, and the current
+reverse scan is preserved.
+
+An optimizer/JIT shortcut that used
+`zend_get_op_array_lexical_namespace_at(op_array, opline)` for op arrays with
+top-level namespace ranges was attempted and rejected. The JIT namespace-range
+test still passed, but the non-JIT OPcache namespace-range test failed by
+allowing access from `Gate4\OpcacheRanges\OtherCase` to a
+`private(namespace)` class in `Gate4\OpcacheRanges\MiXeDCase`. The transformed
+optimizer opline was not a safe key for this decision, so the conservative
+`last_namespace_range > 0` fallback remains.
+
+The public known-`INSTANCEOF` JIT cleanup was not pursued in this sweep. The
+paired public `instanceof` rows pass after the earlier cold-miss helper, and no
+new measured bottleneck justified changing `zend_may_throw()` semantics.
+
 ## Restricted Current Cases
 
 Current-only medians from `current-final-rerun-benchmark.json` are nanoseconds
@@ -284,10 +405,10 @@ increase comes from lexical namespace/range metadata.
 | Repeated instantiation public class | Measured; paired rows pass |
 | Repeated static access public class | Measured; large cache-hit regressions fixed |
 | Repeated `instanceof` public class | Measured; after-fix long paired rows pass |
-| Allowed access restricted class | Measured on current |
+| Allowed access restricted class | Measured; callable-validation allocation removal improves paired rows |
 | Class lookup after cache warmup | Measured; paired row passes |
 | Autoloaded access | Measured; long rerun passes |
-| Denied restricted access | Measured separately with low-iteration error-path loop |
+| Denied restricted access | Measured separately with low-iteration error-path loop; follow-up paired rows improve |
 | OPcache memory impact | Measured |
 | `sizeof(zend_class_entry)` | Measured |
 | `sizeof(zend_op_array)` | Measured |
@@ -299,6 +420,8 @@ Gate 5 is **passed** for the retained public hot-path benchmark gate. The major
 public cache-hit regressions were found and fixed, the class-entry/memory
 overhead from storing a namespace root was eliminated, and the remaining
 `public_instanceof` regression was removed by keeping the const-class miss path
-out of the hot handler. The remaining performance caveat is that these are
-container microbenchmarks; representative application benchmarks are still
-future evidence rather than a Gate 5 blocker.
+out of the hot handler. The follow-up sweep also removes allocation from
+restricted visibility decisions without moving public hot paths outside the
+Gate 5 threshold. The remaining performance caveat is that these are container
+microbenchmarks; representative application benchmarks are still future
+evidence rather than a Gate 5 blocker.
