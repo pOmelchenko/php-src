@@ -5068,6 +5068,12 @@ ZEND_METHOD(ReflectionClass, newInstance)
 
 	GET_REFLECTION_OBJECT_PTR(ce);
 
+	if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
+			ce, zend_get_current_lexical_namespace(),
+			ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		RETURN_THROWS();
+	}
+
 	if (UNEXPECTED(object_init_ex(return_value, ce) != SUCCESS)) {
 		return;
 	}
@@ -5116,6 +5122,12 @@ ZEND_METHOD(ReflectionClass, newInstanceWithoutConstructor)
 
 	ZEND_PARSE_PARAMETERS_NONE();
 
+	if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
+			ce, zend_get_current_lexical_namespace(),
+			ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		RETURN_THROWS();
+	}
+
 	if (ce->type == ZEND_INTERNAL_CLASS
 			&& ce->create_object != NULL && (ce->ce_flags & ZEND_ACC_FINAL)) {
 		zend_throw_exception_ex(reflection_exception_ptr, 0, "Class %s is an internal class marked as final that cannot be instantiated without invoking its constructor", ZSTR_VAL(ce->name));
@@ -5143,6 +5155,12 @@ ZEND_METHOD(ReflectionClass, newInstanceArgs)
 
 	if (args) {
 		argc = zend_hash_num_elements(args);
+	}
+
+	if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
+			ce, zend_get_current_lexical_namespace(),
+			ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		RETURN_THROWS();
 	}
 
 	if (UNEXPECTED(object_init_ex(return_value, ce) != SUCCESS)) {
@@ -5225,6 +5243,12 @@ void reflection_class_new_lazy(INTERNAL_FUNCTION_PARAMETERS,
 		}
 	} else {
 		obj = NULL;
+	}
+
+	if (!is_reset && UNEXPECTED(!zend_check_class_namespace_visibility_from(
+			ce, zend_get_current_lexical_namespace(),
+			ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		RETURN_THROWS();
 	}
 
 	if (!fcc.function_handler) {

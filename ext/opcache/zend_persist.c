@@ -421,6 +421,10 @@ static void zend_persist_op_array_ex(zend_op_array *op_array, zend_persistent_sc
 		}
 	}
 
+	if (op_array->lexical_namespace) {
+		zend_accel_store_interned_string(op_array->lexical_namespace);
+	}
+
 	if (op_array->scope) {
 		zend_class_entry *scope = zend_shared_alloc_get_xlat_entry(op_array->scope);
 
@@ -491,6 +495,10 @@ static void zend_persist_op_array_ex(zend_op_array *op_array, zend_persistent_sc
 			if (op_array->dynamic_func_defs) {
 				op_array->dynamic_func_defs = zend_shared_alloc_get_xlat_entry(op_array->dynamic_func_defs);
 				ZEND_ASSERT(op_array->dynamic_func_defs != NULL);
+			}
+			if (op_array->namespace_ranges) {
+				op_array->namespace_ranges = zend_shared_alloc_get_xlat_entry(op_array->namespace_ranges);
+				ZEND_ASSERT(op_array->namespace_ranges != NULL);
 			}
 			ZCG(mem) = (void*)((char*)ZCG(mem) + ZEND_ALIGNED_SIZE(zend_extensions_op_array_persist(op_array, ZCG(mem))));
 			return;
@@ -629,6 +637,15 @@ static void zend_persist_op_array_ex(zend_op_array *op_array, zend_persistent_sc
 
 	if (op_array->filename) {
 		zend_accel_store_string(op_array->filename);
+	}
+
+	if (op_array->namespace_ranges) {
+		op_array->namespace_ranges = zend_shared_memdup_put_free(
+			op_array->namespace_ranges,
+			sizeof(zend_op_array_namespace_range) * op_array->last_namespace_range);
+		for (uint32_t i = 0; i < op_array->last_namespace_range; i++) {
+			zend_accel_store_interned_string(op_array->namespace_ranges[i].namespace_name);
+		}
 	}
 
 	if (op_array->arg_info) {

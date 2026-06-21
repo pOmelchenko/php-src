@@ -3482,6 +3482,24 @@ static zend_class_entry *zend_lazy_class_load(const zend_class_entry *pce)
 		} while (0)
 #endif
 
+static bool zend_check_class_namespace_visibility_from_declaring_class(
+		const zend_class_entry *dependency, const zend_class_entry *declaring_class,
+		zend_class_namespace_visibility_failure_mode failure_mode)
+{
+	zend_string *caller_namespace;
+	bool result;
+
+	if (!dependency) {
+		return true;
+	}
+
+	caller_namespace = zend_get_namespace_from_name(declaring_class->name);
+	result = zend_check_class_namespace_visibility_from(
+		dependency, caller_namespace, failure_mode);
+	zend_string_release_ex(caller_namespace, 0);
+	return result;
+}
+
 ZEND_API zend_class_entry *zend_do_link_class(zend_class_entry *ce, zend_string *lc_parent_name, const zend_string *key) /* {{{ */
 {
 	/* Load parent/interface dependencies first, so we can still gracefully abort linking
@@ -3507,6 +3525,10 @@ ZEND_API zend_class_entry *zend_do_link_class(zend_class_entry *ce, zend_string 
 			check_unrecoverable_load_failure(ce);
 			return NULL;
 		}
+		if (UNEXPECTED(!zend_check_class_namespace_visibility_from_declaring_class(
+				parent, ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+			return NULL;
+		}
 		UPDATE_IS_CACHEABLE(parent);
 	}
 
@@ -3517,6 +3539,11 @@ ZEND_API zend_class_entry *zend_do_link_class(zend_class_entry *ce, zend_string 
 			zend_class_entry *trait = zend_fetch_class_by_name(ce->trait_names[i].name,
 				ce->trait_names[i].lc_name, ZEND_FETCH_CLASS_TRAIT | ZEND_FETCH_CLASS_EXCEPTION);
 			if (UNEXPECTED(trait == NULL)) {
+				free_alloca(traits_and_interfaces, use_heap);
+				return NULL;
+			}
+			if (UNEXPECTED(!zend_check_class_namespace_visibility_from_declaring_class(
+					trait, ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
 				free_alloca(traits_and_interfaces, use_heap);
 				return NULL;
 			}
@@ -3554,6 +3581,11 @@ ZEND_API zend_class_entry *zend_do_link_class(zend_class_entry *ce, zend_string 
 				ZEND_FETCH_CLASS_ALLOW_NEARLY_LINKED | ZEND_FETCH_CLASS_EXCEPTION);
 			if (!iface) {
 				check_unrecoverable_load_failure(ce);
+				free_alloca(traits_and_interfaces, use_heap);
+				return NULL;
+			}
+			if (UNEXPECTED(!zend_check_class_namespace_visibility_from_declaring_class(
+					iface, ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
 				free_alloca(traits_and_interfaces, use_heap);
 				return NULL;
 			}
@@ -3923,6 +3955,10 @@ ZEND_API zend_class_entry *zend_try_early_bind(zend_class_entry *ce, zend_class_
 	}
 
 	uint32_t is_cacheable = ce->ce_flags & ZEND_ACC_IMMUTABLE;
+	if (UNEXPECTED(!zend_check_class_namespace_visibility_from_declaring_class(
+			parent_ce, ce, ZEND_CLASS_NAMESPACE_VISIBILITY_SILENT_FALSE))) {
+		return NULL;
+	}
 	UPDATE_IS_CACHEABLE(parent_ce);
 	if (is_cacheable) {
 		if (zend_inheritance_cache_get && zend_inheritance_cache_add) {

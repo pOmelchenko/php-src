@@ -57,6 +57,40 @@ Invariant:
 | Direct `require` | Declares CE | Yes, by file inclusion | No use privilege from include itself | N/A | Compile/execute include | OP-REQUIRE |
 | Preload | Declares/persists CE | Yes during preload | No use privilege; later operations check | Later operation namespace | Preload/link or runtime | OP-PRELOAD |
 
+## Gate 3 Implementation Status
+
+Gate 3 implements the runtime/linking/type/callable/reflection/serialization
+rows that resolve a `zend_class_entry` during normal execution. It also keeps
+`C::class`, existence probes, metadata Reflection construction, `method_exists`,
+`property_exists`, `class_alias()` creation, `clone`, `serialize`, `get_class`,
+and direct `require` as non-capability operations.
+
+Covered by focused PHPTs:
+
+- lexical caller context and main-op-array namespace ranges:
+  `ns_visibility_gate3_lexical_context.phpt`,
+  `ns_visibility_gate3_namespace_ranges.phpt`;
+- static operations, `::class`, linking, `instanceof`, and `catch`:
+  `ns_visibility_gate3_operations.phpt`;
+- parameter, return, property, promoted property, typed class constant, union,
+  intersection, and DNF type positions:
+  `ns_visibility_gate3_type_positions.phpt`;
+- callables, probe-only APIs, Reflection instantiation, aliases, existing-object
+  operations, and `unserialize()`:
+  `ns_visibility_gate3_callables_reflection_serialization.phpt`;
+- direct include bypass guard:
+  `ns_visibility_gate3_direct_require.phpt`.
+
+Explicitly outside Gate 3:
+
+- `ReflectionAttribute::newInstance()` and attribute validation timing. Attribute
+  class strings remain string production until a later semantic operation.
+- OPcache/preload/JIT behavioral validation. Gate 3 updates persistence plumbing
+  for new op_array namespace metadata, but Gate 4 must prove optimized and
+  persistent paths cannot bypass checks.
+- Native consistent accessibility for public API leaks.
+- Performance benchmarks.
+
 ## Already Obtained Object
 
 ```php
@@ -101,4 +135,3 @@ Results:
 Existence and metadata probes are the only intentional exception. They may
 resolve a class entry without denying access, but they must not cache or return
 a capability that later bypasses a semantic operation check.
-

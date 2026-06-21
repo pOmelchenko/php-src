@@ -975,14 +975,27 @@ static zend_always_inline const zend_class_entry *zend_ce_from_type(
 		const zend_class_entry *scope, const zend_type *type) {
 	ZEND_ASSERT(ZEND_TYPE_HAS_NAME(*type));
 	zend_string *name = ZEND_TYPE_NAME(*type);
+	const zend_class_entry *ce;
 	if (ZSTR_HAS_CE_CACHE(name)) {
-		zend_class_entry *ce = ZSTR_GET_CE_CACHE(name);
+		ce = ZSTR_GET_CE_CACHE(name);
 		if (!ce) {
 			ce = zend_lookup_class_ex(name, NULL, ZEND_FETCH_CLASS_NO_AUTOLOAD);
 		}
-		return ce;
+	} else {
+		ce = resolve_single_class_type(name, scope);
 	}
-	return resolve_single_class_type(name, scope);
+	if (ce && (ce->ce_flags2 & ZEND_ACC2_NAMESPACE_RESTRICTED)) {
+		zend_string *caller_namespace = scope && scope->name
+			? zend_get_namespace_from_name(scope->name)
+			: zend_string_copy(ZSTR_EMPTY_ALLOC());
+		bool allowed = zend_check_class_namespace_visibility_from(
+			ce, caller_namespace, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW);
+		zend_string_release_ex(caller_namespace, 0);
+		if (UNEXPECTED(!allowed)) {
+			return NULL;
+		}
+	}
+	return ce;
 }
 
 static bool zend_check_intersection_for_property_or_class_constant_class_type(
@@ -993,6 +1006,9 @@ static bool zend_check_intersection_for_property_or_class_constant_class_type(
 	ZEND_TYPE_LIST_FOREACH(intersection_type_list, list_type) {
 		ZEND_ASSERT(!ZEND_TYPE_HAS_LIST(*list_type));
 		const zend_class_entry *ce = zend_ce_from_type(scope, list_type);
+		if (UNEXPECTED(EG(exception))) {
+			return false;
+		}
 		if (!ce || !instanceof_function(value_ce, ce)) {
 			return false;
 		}
@@ -1018,6 +1034,9 @@ static bool zend_check_and_resolve_property_or_class_constant_class_type(
 				}
 				ZEND_ASSERT(!ZEND_TYPE_HAS_LIST(*list_type));
 				const zend_class_entry *ce = zend_ce_from_type(scope, list_type);
+				if (UNEXPECTED(EG(exception))) {
+					return false;
+				}
 				if (ce && instanceof_function(value_ce, ce)) {
 					return true;
 				}
@@ -1033,6 +1052,9 @@ static bool zend_check_and_resolve_property_or_class_constant_class_type(
 		return true;
 	} else if (ZEND_TYPE_HAS_NAME(member_type)) {
 		const zend_class_entry *ce = zend_ce_from_type(scope, &member_type);
+		if (UNEXPECTED(EG(exception))) {
+			return false;
+		}
 		return ce && instanceof_function(value_ce, ce);
 	}
 
@@ -1062,7 +1084,9 @@ static zend_always_inline bool i_zend_verify_property_type(const zend_property_i
 		return 1;
 	}
 
-	zend_verify_property_type_error(info, property);
+	if (!EG(exception)) {
+		zend_verify_property_type_error(info, property);
+	}
 	return 0;
 }
 
@@ -1131,6 +1155,11 @@ static zend_always_inline zend_class_entry *zend_fetch_ce_from_type(
 			return NULL;
 		}
 	}
+	if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
+			ce, zend_get_current_lexical_namespace(),
+			ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		return NULL;
+	}
 	return ce;
 }
 
@@ -1144,6 +1173,9 @@ static bool zend_check_intersection_type_from_list(
 		ce = zend_fetch_ce_from_type(list_type);
 		/* If type is not an instance of one of the types taking part in the
 		 * intersection it cannot be a valid instance of the whole intersection type. */
+		if (UNEXPECTED(EG(exception))) {
+			return false;
+		}
 		if (!ce || !instanceof_function(arg_ce, ce)) {
 			return false;
 		}
@@ -1170,6 +1202,9 @@ static zend_always_inline bool zend_check_type_slow(
 					} else {
 						ZEND_ASSERT(!ZEND_TYPE_HAS_LIST(*list_type));
 						ce = zend_fetch_ce_from_type(list_type);
+						if (UNEXPECTED(EG(exception))) {
+							return false;
+						}
 						/* Instance of a single type part of a union is sufficient to pass the type check */
 						if (ce && instanceof_function(Z_OBJCE_P(arg), ce)) {
 							return true;
@@ -1179,6 +1214,9 @@ static zend_always_inline bool zend_check_type_slow(
 			}
 		} else {
 			ce = zend_fetch_ce_from_type(type);
+			if (UNEXPECTED(EG(exception))) {
+				return false;
+			}
 			/* If we have a CE we check if it satisfies the type constraint,
 			 * otherwise it will check if a standard type satisfies it. */
 			if (ce && instanceof_function(Z_OBJCE_P(arg), ce)) {
@@ -1248,7 +1286,9 @@ static zend_always_inline bool zend_verify_recv_arg_type(const zend_function *zf
 
 	if (ZEND_TYPE_IS_SET(cur_arg_info->type)
 			&& UNEXPECTED(!zend_check_type(&cur_arg_info->type, arg, false, false))) {
-		zend_verify_arg_error(zf, cur_arg_info, arg_num, arg);
+		if (!EG(exception)) {
+			zend_verify_arg_error(zf, cur_arg_info, arg_num, arg);
+		}
 		return 0;
 	}
 
@@ -1260,7 +1300,9 @@ static zend_always_inline bool zend_verify_variadic_arg_type(
 {
 	ZEND_ASSERT(ZEND_TYPE_IS_SET(arg_info->type));
 	if (UNEXPECTED(!zend_check_type(&arg_info->type, arg, false, false))) {
-		zend_verify_arg_error(zf, arg_info, arg_num, arg);
+		if (!EG(exception)) {
+			zend_verify_arg_error(zf, arg_info, arg_num, arg);
+		}
 		return 0;
 	}
 
@@ -1526,7 +1568,9 @@ static zend_always_inline bool zend_check_class_constant_type(const zend_class_c
 ZEND_API bool zend_never_inline zend_verify_class_constant_type(const zend_class_constant *c, const zend_string *name, zval *constant)
 {
 	if (!zend_check_class_constant_type(c, constant)) {
-		zend_verify_class_constant_type_error(c, name, constant);
+		if (!EG(exception)) {
+			zend_verify_class_constant_type_error(c, name, constant);
+		}
 		return 0;
 	}
 
@@ -3765,11 +3809,23 @@ static zend_never_inline zval* zend_fetch_static_property_address_ex(zend_proper
 		} else {
 			ce = Z_CE_P(EX_VAR(opline->op2.var));
 		}
+		if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
+				ce, zend_get_current_lexical_namespace(),
+				ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+			FREE_OP(op1_type, opline->op1.var);
+			return NULL;
+		}
 		if (EXPECTED(op1_type == IS_CONST) && EXPECTED(CACHED_PTR(cache_slot) == ce)) {
 			result = CACHED_PTR(cache_slot + sizeof(void *));
 			*prop_info = CACHED_PTR(cache_slot + sizeof(void *) * 2);
 			return result;
 		}
+	}
+	if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
+			ce, zend_get_current_lexical_namespace(),
+			ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		FREE_OP(op1_type, opline->op1.var);
+		return NULL;
 	}
 
 	if (EXPECTED(op1_type == IS_CONST)) {
@@ -3825,6 +3881,12 @@ static zend_always_inline zval* zend_fetch_static_property_address(zend_property
 	   && ((opline->op2.num & ZEND_FETCH_CLASS_MASK) == ZEND_FETCH_CLASS_SELF
 	    || (opline->op2.num & ZEND_FETCH_CLASS_MASK) == ZEND_FETCH_CLASS_PARENT)))
 	 && EXPECTED(CACHED_PTR(cache_slot + sizeof(void *)) != NULL)) {
+		zend_class_entry *ce = CACHED_PTR(cache_slot);
+		if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
+				ce, zend_get_current_lexical_namespace(),
+				ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+			return NULL;
+		}
 		result = CACHED_PTR(cache_slot + sizeof(void *));
 		property_info = CACHED_PTR(cache_slot + sizeof(void *) * 2);
 

@@ -47,4 +47,4 @@ namespace {
 --EXPECT--
 dynamic
 dynamic
-Error: Cannot access protected(namespace) class Acme\Billing\DynamicService from namespace acme\other
+Error: Cannot access protected(namespace) class Acme\Billing\DynamicService from namespace Acme\Other

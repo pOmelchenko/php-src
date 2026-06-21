@@ -54,6 +54,11 @@
 typedef struct _zend_op_array zend_op_array;
 typedef struct _zend_op zend_op;
 
+typedef struct _zend_op_array_namespace_range {
+	uint32_t start;
+	zend_string *namespace_name;
+} zend_op_array_namespace_range;
+
 /* On 64-bit systems less optimal, but more compact VM code leads to better
  * performance. So on 32-bit systems we use absolute addresses for jump
  * targets and constants, but on 64-bit systems relative 32-bit offsets */
@@ -574,6 +579,10 @@ struct _zend_op_array {
 	zend_string *filename;
 	uint32_t line_start;
 	uint32_t line_end;
+
+	zend_string *lexical_namespace;
+	uint32_t last_namespace_range;
+	zend_op_array_namespace_range *namespace_ranges;
 
 	uint32_t last_literal;
 	uint32_t num_dynamic_func_defs;

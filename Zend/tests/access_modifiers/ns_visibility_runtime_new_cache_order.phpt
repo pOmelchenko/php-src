@@ -39,7 +39,7 @@ namespace {
 ?>
 --EXPECT--
 allowed-then-denied
-Error: Cannot access private(namespace) class Acme\Billing\CachedService from namespace acme\other
+Error: Cannot access private(namespace) class Acme\Billing\CachedService from namespace Acme\Other
 denied-then-allowed
-Error: Cannot access private(namespace) class Acme\Billing\CachedService from namespace acme\other
+Error: Cannot access private(namespace) class Acme\Billing\CachedService from namespace Acme\Other
 allowed after denied

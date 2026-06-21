@@ -17,6 +17,7 @@
 #include "php_incomplete_class.h"
 #include "zend_portability.h"
 #include "zend_exceptions.h"
+#include "zend_execute.h"
 
 /* {{{ reference-handling for unserializer: var_* */
 #define VAR_ENTRIES_MAX 1018     /* 1024 - offsetof(php_unserialize_data, entries) / sizeof(void*) */
@@ -1283,6 +1284,13 @@ object ":" uiv ":" ["]	{
 		return 0;
 	}
 
+	if (!incomplete_class && UNEXPECTED(!zend_check_class_namespace_visibility_from(
+			ce, zend_get_current_lexical_namespace(),
+			ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		zend_string_release_ex(class_name, 0);
+		return 0;
+	}
+
 	if (custom_object) {
 		int ret;
 
@@ -1389,6 +1397,11 @@ object ":" uiv ":" ["]	{
 	}
 	if (!(ce->ce_flags & ZEND_ACC_ENUM)) {
 		php_error_docref(NULL, E_WARNING, "Class '%s' is not an enum", ZSTR_VAL(enum_name));
+		goto fail;
+	}
+	if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
+			ce, zend_get_current_lexical_namespace(),
+			ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
 		goto fail;
 	}
 

@@ -32,6 +32,7 @@
 #include "zend_multibyte.h"
 #include "zend_language_scanner.h"
 #include "zend_inheritance.h"
+#include "zend_execute.h"
 #include "zend_vm.h"
 #include "zend_enum.h"
 #include "zend_observer.h"
@@ -58,6 +59,8 @@
 	} while (0)
 
 #define FC(member) (CG(file_context).member)
+
+static zend_string *zend_get_current_namespace(void);
 
 typedef struct _zend_loop_var {
 	uint8_t opcode;
@@ -1249,6 +1252,48 @@ static void str_dtor(zval *zv)  /* {{{ */ {
 }
 /* }}} */
 
+static zend_string *zend_get_current_namespace(void)
+{
+	if (FC(current_namespace)) {
+		return zend_string_copy(FC(current_namespace));
+	}
+	return zend_string_copy(ZSTR_EMPTY_ALLOC());
+}
+
+static void zend_set_op_array_lexical_namespace(zend_op_array *op_array)
+{
+	if (op_array->lexical_namespace) {
+		zend_string_release_ex(op_array->lexical_namespace, 0);
+	}
+	op_array->lexical_namespace = zend_get_current_namespace();
+}
+
+static void zend_add_op_array_namespace_range(zend_op_array *op_array)
+{
+	uint32_t start = op_array->last;
+	zend_string *namespace_name = zend_get_current_namespace();
+
+	if (op_array->last_namespace_range > 0) {
+		zend_op_array_namespace_range *last_range =
+			&op_array->namespace_ranges[op_array->last_namespace_range - 1];
+
+		if (last_range->start == start) {
+			zend_string_release_ex(last_range->namespace_name, 0);
+			last_range->namespace_name = namespace_name;
+			return;
+		}
+	}
+
+	op_array->namespace_ranges = safe_erealloc(
+		op_array->namespace_ranges,
+		sizeof(zend_op_array_namespace_range),
+		op_array->last_namespace_range + 1,
+		0);
+	op_array->namespace_ranges[op_array->last_namespace_range].start = start;
+	op_array->namespace_ranges[op_array->last_namespace_range].namespace_name = namespace_name;
+	op_array->last_namespace_range++;
+}
+
 static uint32_t zend_add_try_element(uint32_t try_op) /* {{{ */
 {
 	zend_op_array *op_array = CG(active_op_array);
@@ -1907,6 +1952,15 @@ static bool zend_try_ct_eval_class_const(zval *zv, zend_string *class_name, zend
 
 	if (!cc || !zend_verify_ct_const_access(cc, CG(active_class_entry))) {
 		return false;
+	}
+	if (cc->ce->ce_flags2 & ZEND_ACC2_NAMESPACE_RESTRICTED) {
+		zend_string *caller_namespace = zend_get_current_namespace();
+		bool allowed = zend_check_class_namespace_visibility_from(
+			cc->ce, caller_namespace, ZEND_CLASS_NAMESPACE_VISIBILITY_SILENT_FALSE);
+		zend_string_release_ex(caller_namespace, 0);
+		if (!allowed) {
+			return false;
+		}
 	}
 
 	c = &cc->value;
@@ -8757,6 +8811,7 @@ static zend_op_array *zend_compile_func_decl_ex(
 	closure_info info;
 
 	init_op_array(op_array, ZEND_USER_FUNCTION, INITIAL_OP_ARRAY_SIZE);
+	zend_set_op_array_lexical_namespace(op_array);
 
 	if (CG(compiler_options) & ZEND_COMPILE_PRELOAD) {
 		op_array->fn_flags |= ZEND_ACC_PRELOADED;
@@ -10105,6 +10160,7 @@ static void zend_compile_namespace(const zend_ast *ast) /* {{{ */
 	} else {
 		FC(current_namespace) = NULL;
 	}
+	zend_add_op_array_namespace_range(CG(active_op_array));
 
 	zend_reset_import_tables();
 

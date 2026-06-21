@@ -12,12 +12,9 @@ For access checks, a namespace should be normalized as follows:
 - global namespace represented as an empty string;
 - comparison by complete namespace segments.
 
-Case handling remains an open implementation detail. Because PHP class names
-are resolved case-insensitively while source spelling is preserved in many
-places, the safest prototype direction is to store a canonical lower-case
-namespace for checks and preserve the original spelling for diagnostics. This
-must be validated against current namespace and class-table behavior before an
-RFC chooses final wording.
+Case handling follows current PHP diagnostics: source spelling is preserved for
+messages, while comparisons normalize internally. The implementation must not
+expose canonical lower-case namespace strings in user-facing errors.
 
 ## `private(namespace)`
 
@@ -140,4 +137,3 @@ not a security boundary against malicious or untrusted code.
 Any PHP file can declare another namespace. Namespace-scoped visibility can
 reduce accidental coupling and enforce project architecture under normal
 autoloading conventions, but it cannot isolate untrusted code.
-

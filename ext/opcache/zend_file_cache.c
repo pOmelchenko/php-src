@@ -512,6 +512,8 @@ static void zend_file_cache_serialize_op_array(zend_op_array            *op_arra
 			SERIALIZE_PTR(op_array->opcodes);
 			SERIALIZE_PTR(op_array->arg_info);
 			SERIALIZE_PTR(op_array->vars);
+			SERIALIZE_STR(op_array->lexical_namespace);
+			SERIALIZE_PTR(op_array->namespace_ranges);
 			SERIALIZE_STR(op_array->function_name);
 			SERIALIZE_STR(op_array->filename);
 			SERIALIZE_PTR(op_array->live_range);
@@ -691,6 +693,17 @@ static void zend_file_cache_serialize_op_array(zend_op_array            *op_arra
 			}
 		}
 
+		if (op_array->namespace_ranges) {
+			zend_op_array_namespace_range *ranges;
+			SERIALIZE_PTR(op_array->namespace_ranges);
+			ranges = op_array->namespace_ranges;
+			UNSERIALIZE_PTR(ranges);
+			for (uint32_t i = 0; i < op_array->last_namespace_range; i++) {
+				SERIALIZE_STR(ranges[i].namespace_name);
+			}
+		}
+
+		SERIALIZE_STR(op_array->lexical_namespace);
 		SERIALIZE_STR(op_array->function_name);
 		SERIALIZE_STR(op_array->filename);
 		SERIALIZE_PTR(op_array->live_range);
@@ -1444,6 +1457,8 @@ static void zend_file_cache_unserialize_op_array(zend_op_array           *op_arr
 		UNSERIALIZE_PTR(op_array->opcodes);
 		UNSERIALIZE_PTR(op_array->arg_info);
 		UNSERIALIZE_PTR(op_array->vars);
+		UNSERIALIZE_STR(op_array->lexical_namespace);
+		UNSERIALIZE_PTR(op_array->namespace_ranges);
 		UNSERIALIZE_STR(op_array->function_name);
 		UNSERIALIZE_STR(op_array->filename);
 		UNSERIALIZE_PTR(op_array->live_range);
@@ -1588,6 +1603,14 @@ static void zend_file_cache_unserialize_op_array(zend_op_array           *op_arr
 			}
 		}
 
+		if (op_array->namespace_ranges) {
+			UNSERIALIZE_PTR(op_array->namespace_ranges);
+			for (uint32_t i = 0; i < op_array->last_namespace_range; i++) {
+				UNSERIALIZE_STR(op_array->namespace_ranges[i].namespace_name);
+			}
+		}
+
+		UNSERIALIZE_STR(op_array->lexical_namespace);
 		UNSERIALIZE_STR(op_array->function_name);
 		UNSERIALIZE_STR(op_array->filename);
 		UNSERIALIZE_PTR(op_array->live_range);

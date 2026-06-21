@@ -479,7 +479,17 @@ ZEND_API ZEND_NORETURN void ZEND_FASTCALL zend_timeout(void);
 ZEND_API zend_class_entry *zend_fetch_class(zend_string *class_name, uint32_t fetch_type);
 ZEND_API zend_class_entry *zend_fetch_class_with_scope(zend_string *class_name, uint32_t fetch_type, zend_class_entry *scope);
 ZEND_API zend_class_entry *zend_fetch_class_by_name(zend_string *class_name, zend_string *lcname, uint32_t fetch_type);
-bool zend_check_class_namespace_visibility(const zend_class_entry *ce);
+typedef enum _zend_class_namespace_visibility_failure_mode {
+	ZEND_CLASS_NAMESPACE_VISIBILITY_THROW,
+	ZEND_CLASS_NAMESPACE_VISIBILITY_SILENT_FALSE,
+} zend_class_namespace_visibility_failure_mode;
+ZEND_API zend_string *zend_get_namespace_from_name(const zend_string *name);
+ZEND_API const zend_string *zend_get_op_array_lexical_namespace_at(
+	const zend_op_array *op_array, const zend_op *opline);
+ZEND_API const zend_string *zend_get_current_lexical_namespace(void);
+ZEND_API bool zend_check_class_namespace_visibility_from(
+	const zend_class_entry *ce, const zend_string *caller_namespace,
+	zend_class_namespace_visibility_failure_mode failure_mode);
 
 ZEND_API zend_function * ZEND_FASTCALL zend_fetch_function(zend_string *name);
 ZEND_API zend_function * ZEND_FASTCALL zend_fetch_function_str(const char *name, size_t len);

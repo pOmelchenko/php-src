@@ -21,6 +21,7 @@
 #include "zend_API.h"
 #include "zend_closures.h"
 #include "zend_exceptions.h"
+#include "zend_execute.h"
 #include "zend_interfaces.h"
 #include "zend_objects.h"
 #include "zend_objects_API.h"
@@ -421,6 +422,12 @@ ZEND_METHOD(Closure, fromCallable)
 	}
 
 	if (zend_create_closure_from_callable(return_value, callable, &error) == FAILURE) {
+		if (EG(exception)) {
+			if (error) {
+				efree(error);
+			}
+			RETURN_THROWS();
+		}
 		if (error) {
 			zend_type_error("Failed to create closure from callable: %s", error);
 			efree(error);

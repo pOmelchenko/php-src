@@ -227,6 +227,17 @@ static void zend_persist_op_array_calc_ex(zend_op_array *op_array)
 		}
 	}
 
+	if (op_array->lexical_namespace) {
+		ADD_INTERNED_STRING(op_array->lexical_namespace);
+	}
+
+	if (op_array->namespace_ranges) {
+		ADD_SIZE(sizeof(zend_op_array_namespace_range) * op_array->last_namespace_range);
+		for (uint32_t i = 0; i < op_array->last_namespace_range; i++) {
+			ADD_INTERNED_STRING(op_array->namespace_ranges[i].namespace_name);
+		}
+	}
+
 	if (op_array->scope) {
 		if (zend_shared_alloc_get_xlat_entry(op_array->opcodes)) {
 			/* already stored */

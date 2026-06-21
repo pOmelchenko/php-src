@@ -81,7 +81,7 @@ private
 protected
 internal
 protected
-Error: Cannot access private(namespace) class Acme\Billing\Internal\InternalService from namespace acme\billing
-Error: Cannot access private(namespace) class Acme\Billing\PrivateService from namespace acme\billing\application
-Error: Cannot access private(namespace) class Acme\Billing\PrivateService from namespace acme\other
-Error: Cannot access protected(namespace) class Acme\Billing\ProtectedService from namespace acme\other
+Error: Cannot access private(namespace) class Acme\Billing\Internal\InternalService from namespace Acme\Billing
+Error: Cannot access private(namespace) class Acme\Billing\PrivateService from namespace Acme\Billing\Application
+Error: Cannot access private(namespace) class Acme\Billing\PrivateService from namespace Acme\Other
+Error: Cannot access protected(namespace) class Acme\Billing\ProtectedService from namespace Acme\Other

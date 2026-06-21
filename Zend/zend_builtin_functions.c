@@ -26,6 +26,7 @@
 #include "zend_ini.h"
 #include "zend_interfaces.h"
 #include "zend_exceptions.h"
+#include "zend_execute.h"
 #include "zend_extensions.h"
 #include "zend_closures.h"
 #include "zend_generators.h"
@@ -683,6 +684,7 @@ static void is_a_impl(INTERNAL_FUNCTION_PARAMETERS, bool only_subclass) /* {{{ *
 	zend_string *class_name;
 	const zend_class_entry *instance_ce;
 	bool allow_string = only_subclass;
+	const zend_string *caller_namespace;
 
 	ZEND_PARSE_PARAMETERS_START(2, 3)
 		Z_PARAM_ZVAL(obj)
@@ -702,19 +704,25 @@ static void is_a_impl(INTERNAL_FUNCTION_PARAMETERS, bool only_subclass) /* {{{ *
 		if (!instance_ce) {
 			RETURN_FALSE;
 		}
+		caller_namespace = zend_get_current_lexical_namespace();
+		if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
+				instance_ce, caller_namespace, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+			RETURN_THROWS();
+		}
 	} else if (Z_TYPE_P(obj) == IS_OBJECT) {
 		instance_ce = Z_OBJCE_P(obj);
 	} else {
 		RETURN_FALSE;
 	}
 
-	if (!only_subclass && EXPECTED(zend_string_equals(instance_ce->name, class_name))) {
-		RETURN_TRUE;
-	}
-
 	const zend_class_entry *ce = zend_lookup_class_ex(class_name, NULL, ZEND_FETCH_CLASS_NO_AUTOLOAD);
 	if (!ce) {
 		RETURN_FALSE;
+	}
+	caller_namespace = zend_get_current_lexical_namespace();
+	if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
+			ce, caller_namespace, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		RETURN_THROWS();
 	}
 
 	if (only_subclass && instance_ce == ce) {

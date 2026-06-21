@@ -77,3 +77,23 @@
   for the private/protected model.
 - Verified Docker debug build and 12/12 targeted namespace visibility PHPT
   tests for the revised model.
+- Implemented Gate 3 enforcement coverage with explicit lexical caller
+  namespace metadata on user op_arrays and namespace ranges for multi-namespace
+  main/eval op_arrays.
+- Replaced the implicit namespace check with an explicit
+  `zend_check_class_namespace_visibility_from()` API and silent-false mode for
+  probes such as `is_callable()`. No current-context check wrapper is exposed;
+  VM paths pass `zend_get_current_lexical_namespace()` explicitly.
+- Extended enforcement to static method/property/constant access, class
+  constant folding, `instanceof`, `catch`, class linking, type positions,
+  callables, selected Reflection allocation APIs, aliases, direct require, and
+  `unserialize()`.
+- Added OPcache persistence/file-cache plumbing for the new op_array namespace
+  metadata without claiming OPcache/preload behavioral completion.
+- Added six Gate 3 PHPTs covering lexical context, namespace ranges,
+  operations/linking, type positions, callable/probe/reflection/serialization
+  edges, and direct require bypass behavior.
+- Preserved source namespace spelling in Gate 3 caller diagnostics while
+  keeping namespace comparisons case-insensitive internally.
+- Verified Docker debug build, 6/6 focused Gate 3 PHPT tests, and 18/18 broad
+  `ns_visibility_*.phpt` plus tokenizer tests.

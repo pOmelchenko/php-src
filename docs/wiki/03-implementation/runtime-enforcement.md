@@ -2,28 +2,23 @@
 
 ## Central Check
 
-The implementation should avoid scattering incompatible checks across each
-opcode. A central function should own the rule:
+The implementation should avoid scattering incompatible policy logic across
+each opcode. A central function should own the rule, but caller context must be
+passed explicitly:
 
 ```c
-zend_result zend_check_class_namespace_visibility(
-    const zend_class_entry *target_ce,
+bool zend_check_class_namespace_visibility_from(
+    const zend_class_entry *ce,
     const zend_string *caller_namespace,
-    zend_class_visibility_context context
+    zend_class_namespace_visibility_failure_mode failure_mode
 );
 ```
 
-The exact API is a planning placeholder, not a proposed public Zend API.
-
-Current Phase C prototype API:
-
-```c
-bool zend_check_class_namespace_visibility(const zend_class_entry *ce);
-```
-
-The prototype API derives caller namespace internally from the currently
-executing named user function or method. This is intentionally incomplete and
-should not be treated as the final API shape.
+There is intentionally no `zend_check_class_namespace_visibility(ce)` wrapper
+that derives caller context internally. VM handlers and runtime helpers that use
+the current frame must still spell that out with
+`zend_get_current_lexical_namespace()` so non-VM paths do not accidentally reuse
+current-opline semantics.
 
 The function should:
 
@@ -54,19 +49,12 @@ The caller namespace should come from lexical compile context:
 - original user call site namespace for internal functions resolving class
   names or callables.
 
-Current php-src does not store namespace directly on `zend_op_array`; PR #20421
-adds such a field. Class-like visibility may need the same field or a more
-targeted caller-context mechanism.
-
-Current Phase C limitation:
-
-- named function namespace is derived from `op_array.function_name`;
-- method namespace is derived from `op_array.scope->name`;
-- global/top-level code currently resolves to global namespace;
-- closures and arrow functions without class scope currently do not carry their
-  lexical namespace;
-- `Closure::bind()` and eval need a stronger design before this can be called
-  complete.
+Gate 3 stores lexical namespace source spelling on user op arrays and a
+lightweight namespace range table for top-level/eval op arrays that contain
+multiple namespace blocks. The checker normalizes caller namespace internally
+for comparisons and uses the stored spelling for diagnostics. `Closure::bind()`
+and `Closure::call()` do not change the lexical namespace of the executed
+closure body.
 
 ## Enforcement Points
 
@@ -87,13 +75,10 @@ The central check must be invoked from or before:
 - reflection construction paths if enforcement is chosen;
 - unserialize and other engine-created object construction paths.
 
-Current Phase C wired points:
-
-- `ZEND_NEW`;
-- `ZEND_FETCH_CLASS`.
-
-This covers static and dynamic `new` in the focused tests. It does not yet
-cover the full operation matrix.
+Gate 3 wires the VM/runtime, linking, type, callable, selected Reflection
+allocation, alias-use, and unserialize paths listed in
+[05-operation-coverage.md](../07-risk-closure/05-operation-coverage.md).
+OPcache/preload/JIT validation and performance evidence remain later gates.
 
 ## Runtime Cache Hazards
 
@@ -108,9 +93,10 @@ different namespace must not skip access checking. Options:
 The simplest correct prototype is to always check restricted CEs after cache
 lookup. The fast path makes unrestricted classes cheap.
 
-The current Phase C spike checks restricted CEs after `ZEND_NEW` and
-`ZEND_FETCH_CLASS` cache lookup, which is why the first cache-order PHPTs cover
-both allowed-then-denied and denied-then-allowed flows.
+Gate 3 checks restricted CEs after representative semantic cache lookups,
+including `ZEND_NEW`, `ZEND_FETCH_CLASS`, static access, class constants,
+`instanceof`, and callable class-string resolution. OPcache/preload/JIT cache
+behavior remains Gate 4+.
 
 ## Error Messages
 

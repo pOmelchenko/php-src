@@ -3691,6 +3691,25 @@ static zend_always_inline zend_class_entry *get_scope(const zend_execute_data *f
 	return frame && frame->func ? frame->func->common.scope : NULL;
 }
 
+static const zend_string *zend_callable_frame_namespace(const zend_execute_data *frame)
+{
+	if (frame && frame->func && ZEND_USER_CODE(frame->func->type)) {
+		return zend_get_op_array_lexical_namespace_at(&frame->func->op_array, frame->opline);
+	}
+	return ZSTR_EMPTY_ALLOC();
+}
+
+static bool zend_check_callable_class_namespace_visibility(
+		const zend_class_entry *ce, const zend_execute_data *frame, char **error)
+{
+	zend_class_namespace_visibility_failure_mode failure_mode = error
+		? ZEND_CLASS_NAMESPACE_VISIBILITY_THROW
+		: ZEND_CLASS_NAMESPACE_VISIBILITY_SILENT_FALSE;
+
+	return zend_check_class_namespace_visibility_from(
+		ce, zend_callable_frame_namespace(frame), failure_mode);
+}
+
 static bool zend_is_callable_check_class(zend_string *name, zend_class_entry *scope, const zend_execute_data *frame, zend_fcall_info_cache *fcc, bool *strict_class, char **error, bool suppress_deprecation) /* {{{ */
 {
 	bool ret = false;
@@ -3759,6 +3778,9 @@ static bool zend_is_callable_check_class(zend_string *name, zend_class_entry *sc
 		}
 	} else if ((ce = zend_lookup_class(name)) != NULL) {
 		const zend_class_entry *frame_scope = get_scope(frame);
+		if (UNEXPECTED(!zend_check_callable_class_namespace_visibility(ce, frame, error))) {
+			goto done;
+		}
 		fcc->calling_scope = ce;
 		if (frame_scope && !fcc->object) {
 			zend_object *object = zend_get_this_object(frame);
@@ -3779,6 +3801,7 @@ static bool zend_is_callable_check_class(zend_string *name, zend_class_entry *sc
 	} else {
 		if (error) zend_spprintf(error, 0, "class \"%.*s\" not found", (int)name_len, ZSTR_VAL(name));
 	}
+done:
 	ZSTR_ALLOCA_FREE(lcname, use_heap);
 	/* User error handlers may throw from deprecations above; do not report callable as valid. */
 	if (UNEXPECTED(EG(exception))) {
@@ -3870,6 +3893,11 @@ static zend_always_inline bool zend_is_callable_check_func(const zval *callable,
 		cname = zend_string_init_interned(Z_STRVAL_P(callable), clen, 0);
 		if (ZSTR_HAS_CE_CACHE(cname) && ZSTR_GET_CE_CACHE(cname)) {
 			fcc->calling_scope = ZSTR_GET_CE_CACHE(cname);
+			if (UNEXPECTED(!zend_check_callable_class_namespace_visibility(
+					fcc->calling_scope, frame, error))) {
+				zend_string_release_ex(cname, 0);
+				return 0;
+			}
 			if (scope && !fcc->object) {
 				zend_object *object = zend_get_this_object(frame);
 

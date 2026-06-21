@@ -1709,39 +1709,56 @@ static ZEND_COLD void report_class_fetch_error(const zend_string *class_name, ui
 	}
 }
 
-static zend_string *zend_get_namespace_from_name(const zend_string *name)
+ZEND_API zend_string *zend_get_namespace_from_name(const zend_string *name)
 {
 	const char *separator = zend_memrchr(ZSTR_VAL(name), '\\', ZSTR_LEN(name));
-	zend_string *namespace_name;
-	zend_string *lc_namespace_name;
 
 	if (!separator) {
 		return zend_string_copy(ZSTR_EMPTY_ALLOC());
 	}
 
-	namespace_name = zend_string_init(ZSTR_VAL(name), separator - ZSTR_VAL(name), 0);
-	lc_namespace_name = zend_string_tolower(namespace_name);
-	zend_string_release_ex(namespace_name, 0);
-	return lc_namespace_name;
+	return zend_string_init(ZSTR_VAL(name), separator - ZSTR_VAL(name), 0);
 }
 
-static zend_string *zend_get_executed_namespace_name(void)
+ZEND_API const zend_string *zend_get_op_array_lexical_namespace_at(
+		const zend_op_array *op_array, const zend_op *opline)
+{
+	if (!op_array) {
+		return ZSTR_EMPTY_ALLOC();
+	}
+
+	if (op_array->last_namespace_range > 0 && opline && op_array->opcodes) {
+		uint32_t offset = (uint32_t) (opline - op_array->opcodes);
+		uint32_t i = op_array->last_namespace_range;
+
+		while (i > 0) {
+			zend_op_array_namespace_range *range = &op_array->namespace_ranges[--i];
+			if (range->start <= offset) {
+				return range->namespace_name;
+			}
+		}
+	}
+
+	if (op_array->lexical_namespace) {
+		return op_array->lexical_namespace;
+	}
+
+	return ZSTR_EMPTY_ALLOC();
+}
+
+ZEND_API const zend_string *zend_get_current_lexical_namespace(void)
 {
 	zend_execute_data *ex = EG(current_execute_data);
 
-	if (!ex || !ex->func || ex->func->type != ZEND_USER_FUNCTION) {
-		return zend_string_copy(ZSTR_EMPTY_ALLOC());
+	while (ex && (!ex->func || !ZEND_USER_CODE(ex->func->type))) {
+		ex = ex->prev_execute_data;
 	}
 
-	if (ex->func->common.scope && ex->func->common.scope->name) {
-		return zend_get_namespace_from_name(ex->func->common.scope->name);
+	if (!ex || !ex->func) {
+		return ZSTR_EMPTY_ALLOC();
 	}
 
-	if (ex->func->common.function_name) {
-		return zend_get_namespace_from_name(ex->func->common.function_name);
-	}
-
-	return zend_string_copy(ZSTR_EMPTY_ALLOC());
+	return zend_get_op_array_lexical_namespace_at(&ex->func->op_array, ex->opline);
 }
 
 static bool zend_is_namespace_visibility_allowed(
@@ -1766,19 +1783,37 @@ static bool zend_is_namespace_visibility_allowed(
 	return false;
 }
 
-bool zend_check_class_namespace_visibility(const zend_class_entry *ce)
+ZEND_API bool zend_check_class_namespace_visibility_from(
+		const zend_class_entry *ce, const zend_string *caller_namespace,
+		zend_class_namespace_visibility_failure_mode failure_mode)
 {
-	zend_string *caller_namespace;
 	bool allowed;
+	zend_string *caller_lc_namespace = NULL;
+	const zend_string *caller_lc_namespace_ref;
 
 	if (!(ce->ce_flags2 & ZEND_ACC2_NAMESPACE_RESTRICTED)) {
 		return true;
 	}
 
-	caller_namespace = zend_get_executed_namespace_name();
-	allowed = zend_is_namespace_visibility_allowed(ce, caller_namespace);
+	if (!caller_namespace) {
+		caller_namespace = ZSTR_EMPTY_ALLOC();
+	}
+	if (ZSTR_LEN(caller_namespace) > 0) {
+		caller_lc_namespace = zend_string_tolower(caller_namespace);
+		caller_lc_namespace_ref = caller_lc_namespace;
+	} else {
+		caller_lc_namespace_ref = ZSTR_EMPTY_ALLOC();
+	}
+	allowed = zend_is_namespace_visibility_allowed(ce, caller_lc_namespace_ref);
+	if (caller_lc_namespace) {
+		zend_string_release_ex(caller_lc_namespace, 0);
+	}
 
 	if (!allowed) {
+		if (failure_mode == ZEND_CLASS_NAMESPACE_VISIBILITY_SILENT_FALSE) {
+			return false;
+		}
+
 		const char *modifier = (ce->ce_flags2 & ZEND_ACC2_NAMESPACE_PRIVATE)
 			? "private(namespace)"
 			: "protected(namespace)";
@@ -1786,11 +1821,10 @@ bool zend_check_class_namespace_visibility(const zend_class_entry *ce)
 			? ZSTR_VAL(caller_namespace)
 			: "{global}";
 
-		zend_throw_error(NULL, "Cannot access %s class %s from namespace %s",
-			modifier, ZSTR_VAL(ce->name), caller);
+		zend_throw_error(NULL, "Cannot access %s %s %s from namespace %s",
+			modifier, zend_get_object_type(ce), ZSTR_VAL(ce->name), caller);
 	}
 
-	zend_string_release_ex(caller_namespace, 0);
 	return allowed;
 }
 
