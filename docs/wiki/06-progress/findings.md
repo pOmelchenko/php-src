@@ -91,5 +91,20 @@ small parser-only patch if complete enforcement is required. A correct feature
 crosses parser, compiler, class entries, class fetch, inheritance linking,
 type resolution, reflection, OPcache, preload, JIT, and tests. The Docker
 environment removed the local generator-tool blocker and the Phase B
-parser/metadata spike now builds and passes targeted tests. Runtime enforcement
-remains the hard part and has not started.
+parser/metadata spike builds and passes targeted tests. Phase C now has a first
+runtime enforcement slice for `new`, but complete enforcement remains the hard
+part.
+
+## Phase C Findings
+
+- Checking after CE cache lookup is necessary and feasible for `ZEND_NEW` and
+  `ZEND_FETCH_CLASS`; the first cache-order tests pass.
+- The fast path for unrestricted classes keeps the new check cheap for normal
+  code.
+- Deriving caller namespace from named function/method metadata is enough for
+  the first construction tests, but it is not a complete lexical namespace
+  model.
+- A final implementation still needs per-operation or op_array-level lexical
+  namespace metadata that handles top-level namespace blocks, closures, arrow
+  functions, eval, and `Closure::bind()`.
+- No OPcache, preload, or JIT behavior has been validated for enforcement yet.

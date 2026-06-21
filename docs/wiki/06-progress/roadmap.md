@@ -22,7 +22,7 @@ No C-code prototype was started.
 
 ## Iteration 2: Parser and Metadata Spike
 
-Status: in progress in the working tree.
+Status: committed as `af9e9790f52`.
 
 Entry requirements:
 
@@ -58,6 +58,8 @@ Remaining before closing Iteration 2:
 
 ## Iteration 3: Minimal Runtime Enforcement
 
+Status: in progress in the working tree.
+
 Entry requirements:
 
 - metadata spike compiles and passes parser tests;
@@ -70,6 +72,23 @@ Deliverables:
 - dynamic `new $className` enforcement;
 - core namespace allow/deny tests;
 - allowed-then-denied cache-order test for construction.
+
+Completed so far:
+
+- central check for restricted class entries;
+- `ZEND_NEW` and `ZEND_FETCH_CLASS` wiring;
+- static and dynamic `new` tests;
+- method caller namespace test;
+- protected child/sibling and private child behavior;
+- segment-prefix false-positive rejection;
+- allowed-then-denied and denied-then-allowed cache-order test.
+
+Remaining:
+
+- replace current named-function/method caller namespace derivation with a
+  complete lexical caller source;
+- add top-level, closure, eval, trait, and method-specific lexical tests;
+- add OPcache on/off checks for the covered construction paths.
 
 ## Iteration 4: Full Runtime Coverage
 

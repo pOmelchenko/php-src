@@ -82,13 +82,14 @@ Before creating this wiki, the worktree had no reported modified, staged, or
 untracked files. This iteration intentionally adds only files under
 `docs/wiki/`.
 
-Current Phase B working tree status:
+Current Phase C working tree status:
 
 - modified Zend Engine, Reflection, OPcache persistence, and tokenizer files;
-- added six PHPT tests for parser acceptance/rejection, Reflection metadata,
-  and tokenizer tokens;
+- added eleven PHPT tests for parser acceptance/rejection, Reflection metadata,
+  tokenizer tokens, and minimal runtime `new` enforcement;
 - no unrelated changes are intended;
-- no code commit has been created for the Phase B prototype yet.
+- Phase B was committed as `af9e9790f52`;
+- no code commit has been created for the Phase C prototype yet.
 
 ## Navigation and Status
 
@@ -128,7 +129,7 @@ Current Phase B working tree status:
 
 ## Current Prototype Status
 
-Status: incomplete experimental Phase B spike.
+Status: incomplete experimental Phase C spike.
 
 Implemented in the working tree:
 
@@ -143,12 +144,18 @@ Implemented in the working tree:
   `isNamespacePrivate()`, `isNamespaceProtected()`, and
   `getNamespaceVisibilityRoot()`;
 - tokenizer metadata for the new tokens;
-- OPcache persistence size/store updates for the new class-entry string.
+- OPcache persistence size/store updates for the new class-entry string;
+- central runtime check for exact private and descendant protected namespace
+  visibility;
+- minimal runtime enforcement in `ZEND_NEW` and `ZEND_FETCH_CLASS`.
 
 Known limitations:
 
-- no runtime access checks are implemented;
-- static and dynamic class fetches are not restricted;
+- runtime access checks are partial;
+- caller namespace is currently derived from executing named function or method
+  metadata, not from a complete per-operation lexical namespace map;
+- top-level code, closures, arrow functions, `Closure::bind()`, eval, and trait
+  edge cases are not correctly covered yet;
 - inheritance, interfaces, traits, types, callables, aliases, Reflection
   construction, preload, OPcache runtime behavior, and JIT paths are not yet
   enforced;
@@ -216,10 +223,15 @@ sapi/cli/php run-tests.php -q \
   Zend/tests/access_modifiers/ns_visibility_duplicate_modifier_error.phpt \
   Zend/tests/access_modifiers/ns_visibility_anonymous_class_error.phpt \
   Zend/tests/access_modifiers/ns_visibility_explicit_root_error.phpt \
+  Zend/tests/access_modifiers/ns_visibility_runtime_new_static.phpt \
+  Zend/tests/access_modifiers/ns_visibility_runtime_new_dynamic.phpt \
+  Zend/tests/access_modifiers/ns_visibility_runtime_method_namespace.phpt \
+  Zend/tests/access_modifiers/ns_visibility_runtime_segment_prefix.phpt \
+  Zend/tests/access_modifiers/ns_visibility_runtime_new_cache_order.phpt \
   ext/tokenizer/tests/ns_visibility_tokens.phpt
 ```
 
-Result: 6/6 passed.
+Result: 11/11 passed.
 
 Docker ZTS debug build:
 

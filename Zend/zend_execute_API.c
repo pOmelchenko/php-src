@@ -1709,6 +1709,86 @@ static ZEND_COLD void report_class_fetch_error(const zend_string *class_name, ui
 	}
 }
 
+static zend_string *zend_get_namespace_from_name(const zend_string *name)
+{
+	const char *separator = zend_memrchr(ZSTR_VAL(name), '\\', ZSTR_LEN(name));
+
+	if (!separator) {
+		return zend_string_copy(ZSTR_EMPTY_ALLOC());
+	}
+
+	return zend_string_init(ZSTR_VAL(name), separator - ZSTR_VAL(name), 0);
+}
+
+static zend_string *zend_get_executed_namespace_name(void)
+{
+	zend_execute_data *ex = EG(current_execute_data);
+
+	if (!ex || !ex->func || ex->func->type != ZEND_USER_FUNCTION) {
+		return zend_string_copy(ZSTR_EMPTY_ALLOC());
+	}
+
+	if (ex->func->common.scope && ex->func->common.scope->name) {
+		return zend_get_namespace_from_name(ex->func->common.scope->name);
+	}
+
+	if (ex->func->common.function_name) {
+		return zend_get_namespace_from_name(ex->func->common.function_name);
+	}
+
+	return zend_string_copy(ZSTR_EMPTY_ALLOC());
+}
+
+static bool zend_is_namespace_visibility_allowed(
+		const zend_class_entry *ce, const zend_string *caller_namespace)
+{
+	const zend_string *declaration_namespace = ce->namespace_visibility_namespace;
+
+	if (!declaration_namespace) {
+		declaration_namespace = ZSTR_EMPTY_ALLOC();
+	}
+
+	if (zend_string_equals(declaration_namespace, caller_namespace)) {
+		return true;
+	}
+
+	if ((ce->ce_flags2 & ZEND_ACC2_NAMESPACE_PROTECTED) && ZSTR_LEN(declaration_namespace) > 0) {
+		return ZSTR_LEN(caller_namespace) > ZSTR_LEN(declaration_namespace)
+			&& ZSTR_VAL(caller_namespace)[ZSTR_LEN(declaration_namespace)] == '\\'
+			&& memcmp(ZSTR_VAL(caller_namespace), ZSTR_VAL(declaration_namespace), ZSTR_LEN(declaration_namespace)) == 0;
+	}
+
+	return false;
+}
+
+bool zend_check_class_namespace_visibility(const zend_class_entry *ce)
+{
+	zend_string *caller_namespace;
+	bool allowed;
+
+	if (!(ce->ce_flags2 & ZEND_ACC2_NAMESPACE_RESTRICTED)) {
+		return true;
+	}
+
+	caller_namespace = zend_get_executed_namespace_name();
+	allowed = zend_is_namespace_visibility_allowed(ce, caller_namespace);
+
+	if (!allowed) {
+		const char *modifier = (ce->ce_flags2 & ZEND_ACC2_NAMESPACE_PRIVATE)
+			? "private(namespace)"
+			: "protected(namespace)";
+		const char *caller = ZSTR_LEN(caller_namespace) > 0
+			? ZSTR_VAL(caller_namespace)
+			: "{global}";
+
+		zend_throw_error(NULL, "Cannot access %s class %s from namespace %s",
+			modifier, ZSTR_VAL(ce->name), caller);
+	}
+
+	zend_string_release_ex(caller_namespace, 0);
+	return allowed;
+}
+
 zend_class_entry *zend_fetch_class(zend_string *class_name, uint32_t fetch_type) /* {{{ */
 {
 	zend_class_entry *ce, *scope;

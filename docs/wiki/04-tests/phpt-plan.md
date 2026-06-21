@@ -1,7 +1,7 @@
 # PHPT Plan
 
-Phase B parser/metadata PHPT files now exist. The broader runtime enforcement
-plan remains pending.
+Phase B parser/metadata PHPT files exist. Phase C now has a minimal runtime
+`new` enforcement test set, but the broader operation matrix remains pending.
 
 ## Phase B Parser and Metadata Tests
 
@@ -33,7 +33,15 @@ Assertions:
 
 ## Phase C Core Runtime Tests
 
-Planned files:
+Implemented files:
+
+- `Zend/tests/access_modifiers/ns_visibility_runtime_new_static.phpt`
+- `Zend/tests/access_modifiers/ns_visibility_runtime_new_dynamic.phpt`
+- `Zend/tests/access_modifiers/ns_visibility_runtime_method_namespace.phpt`
+- `Zend/tests/access_modifiers/ns_visibility_runtime_segment_prefix.phpt`
+- `Zend/tests/access_modifiers/ns_visibility_runtime_new_cache_order.phpt`
+
+Still planned:
 
 - `ns_visibility_private_same_namespace_allowed.phpt`
 - `ns_visibility_private_child_namespace_denied.phpt`
@@ -53,6 +61,12 @@ Assertions:
 - caller namespace included;
 - target class name included;
 - allowed scope included where practical.
+
+Current limitation:
+
+- tests call `new` from named functions so the Phase C prototype can derive
+  caller namespace from function/method metadata;
+- top-level, closure, eval, and trait caller tests are still pending.
 
 ## Phase D Operation Coverage Tests
 
@@ -149,10 +163,15 @@ sapi/cli/php run-tests.php -q \
   Zend/tests/access_modifiers/ns_visibility_duplicate_modifier_error.phpt \
   Zend/tests/access_modifiers/ns_visibility_anonymous_class_error.phpt \
   Zend/tests/access_modifiers/ns_visibility_explicit_root_error.phpt \
+  Zend/tests/access_modifiers/ns_visibility_runtime_new_static.phpt \
+  Zend/tests/access_modifiers/ns_visibility_runtime_new_dynamic.phpt \
+  Zend/tests/access_modifiers/ns_visibility_runtime_method_namespace.phpt \
+  Zend/tests/access_modifiers/ns_visibility_runtime_segment_prefix.phpt \
+  Zend/tests/access_modifiers/ns_visibility_runtime_new_cache_order.phpt \
   ext/tokenizer/tests/ns_visibility_tokens.phpt
 ```
 
-Result on 2026-06-21: 6/6 passed.
+Result on 2026-06-21: 11/11 passed.
 
 Also run:
 
@@ -165,5 +184,5 @@ Not run yet:
 - OPcache tests;
 - JIT tests.
 
-Reason: Phase B does not implement runtime enforcement, so OPcache/JIT behavior
-tests would not yet exercise the intended feature semantics.
+Reason: Phase C does not yet cover the optimized paths that OPcache/JIT tests
+need to exercise.

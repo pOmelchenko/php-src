@@ -3563,28 +3563,50 @@ ZEND_VM_HANDLER(56, ZEND_ROPE_END, TMP, CONST|TMP|CV, NUM)
 ZEND_VM_HANDLER(109, ZEND_FETCH_CLASS, UNUSED|CLASS_FETCH, CONST|TMP|UNUSED|CV, CACHE_SLOT)
 {
 	zval *class_name;
+	zend_class_entry *ce;
 	USE_OPLINE
 
 	SAVE_OPLINE();
 	if (OP2_TYPE == IS_UNUSED) {
-		Z_CE_P(EX_VAR(opline->result.var)) = zend_fetch_class(NULL, opline->op1.num);
+		ce = zend_fetch_class(NULL, opline->op1.num);
+		if (UNEXPECTED(ce == NULL || !zend_check_class_namespace_visibility(ce))) {
+			ZVAL_UNDEF(EX_VAR(opline->result.var));
+			HANDLE_EXCEPTION();
+		}
+		Z_CE_P(EX_VAR(opline->result.var)) = ce;
 		ZEND_VM_NEXT_OPCODE_CHECK_EXCEPTION();
 	} else if (OP2_TYPE == IS_CONST) {
-		zend_class_entry *ce = CACHED_PTR(opline->extended_value);
+		ce = CACHED_PTR(opline->extended_value);
 
 		if (UNEXPECTED(ce == NULL)) {
 			class_name = GET_OP2_ZVAL_PTR_UNDEF(BP_VAR_R);
 			ce = zend_fetch_class_by_name(Z_STR_P(class_name), Z_STR_P(class_name + 1), opline->op1.num);
 			CACHE_PTR(opline->extended_value, ce);
 		}
+		if (UNEXPECTED(ce == NULL || !zend_check_class_namespace_visibility(ce))) {
+			ZVAL_UNDEF(EX_VAR(opline->result.var));
+			HANDLE_EXCEPTION();
+		}
 		Z_CE_P(EX_VAR(opline->result.var)) = ce;
 	} else {
 		class_name = GET_OP2_ZVAL_PTR_UNDEF(BP_VAR_R);
 ZEND_VM_C_LABEL(try_class_name):
 		if (Z_TYPE_P(class_name) == IS_OBJECT) {
-			Z_CE_P(EX_VAR(opline->result.var)) = Z_OBJCE_P(class_name);
+			ce = Z_OBJCE_P(class_name);
+			if (UNEXPECTED(!zend_check_class_namespace_visibility(ce))) {
+				ZVAL_UNDEF(EX_VAR(opline->result.var));
+				FREE_OP2();
+				HANDLE_EXCEPTION();
+			}
+			Z_CE_P(EX_VAR(opline->result.var)) = ce;
 		} else if (Z_TYPE_P(class_name) == IS_STRING) {
-			Z_CE_P(EX_VAR(opline->result.var)) = zend_fetch_class(Z_STR_P(class_name), opline->op1.num);
+			ce = zend_fetch_class(Z_STR_P(class_name), opline->op1.num);
+			if (UNEXPECTED(ce == NULL || !zend_check_class_namespace_visibility(ce))) {
+				ZVAL_UNDEF(EX_VAR(opline->result.var));
+				FREE_OP2();
+				HANDLE_EXCEPTION();
+			}
+			Z_CE_P(EX_VAR(opline->result.var)) = ce;
 		} else if ((OP2_TYPE & (IS_VAR|IS_CV)) && Z_TYPE_P(class_name) == IS_REFERENCE) {
 			class_name = Z_REFVAL_P(class_name);
 			ZEND_VM_C_GOTO(try_class_name);
@@ -5994,14 +6016,26 @@ ZEND_VM_HANDLER(68, ZEND_NEW, UNUSED|CLASS_FETCH|CONST|VAR, UNUSED|CACHE_SLOT, N
 			}
 			CACHE_PTR(opline->op2.num, ce);
 		}
+		if (UNEXPECTED(!zend_check_class_namespace_visibility(ce))) {
+			ZVAL_UNDEF(EX_VAR(opline->result.var));
+			HANDLE_EXCEPTION();
+		}
 	} else if (OP1_TYPE == IS_UNUSED) {
 		ce = zend_fetch_class(NULL, opline->op1.num);
 		if (UNEXPECTED(ce == NULL)) {
 			ZVAL_UNDEF(EX_VAR(opline->result.var));
 			HANDLE_EXCEPTION();
 		}
+		if (UNEXPECTED(!zend_check_class_namespace_visibility(ce))) {
+			ZVAL_UNDEF(EX_VAR(opline->result.var));
+			HANDLE_EXCEPTION();
+		}
 	} else {
 		ce = Z_CE_P(EX_VAR(opline->op1.var));
+		if (UNEXPECTED(!zend_check_class_namespace_visibility(ce))) {
+			ZVAL_UNDEF(EX_VAR(opline->result.var));
+			HANDLE_EXCEPTION();
+		}
 	}
 
 	result = EX_VAR(opline->result.var);

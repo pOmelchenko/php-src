@@ -15,6 +15,16 @@ zend_result zend_check_class_namespace_visibility(
 
 The exact API is a planning placeholder, not a proposed public Zend API.
 
+Current Phase C prototype API:
+
+```c
+bool zend_check_class_namespace_visibility(const zend_class_entry *ce);
+```
+
+The prototype API derives caller namespace internally from the currently
+executing named user function or method. This is intentionally incomplete and
+should not be treated as the final API shape.
+
 The function should:
 
 - fast-path unrestricted classes;
@@ -28,7 +38,7 @@ The function should:
 Preferred fast path:
 
 ```c
-if (!(ce->ce_flags & ZEND_ACC_NAMESPACE_RESTRICTED)) {
+if (!(ce->ce_flags2 & ZEND_ACC2_NAMESPACE_RESTRICTED)) {
     return SUCCESS;
 }
 ```
@@ -47,6 +57,16 @@ The caller namespace should come from lexical compile context:
 Current php-src does not store namespace directly on `zend_op_array`; PR #20421
 adds such a field. Class-like visibility may need the same field or a more
 targeted caller-context mechanism.
+
+Current Phase C limitation:
+
+- named function namespace is derived from `op_array.function_name`;
+- method namespace is derived from `op_array.scope->name`;
+- global/top-level code currently resolves to global namespace;
+- closures and arrow functions without class scope currently do not carry their
+  lexical namespace;
+- `Closure::bind()` and eval need a stronger design before this can be called
+  complete.
 
 ## Enforcement Points
 
@@ -67,6 +87,14 @@ The central check must be invoked from or before:
 - reflection construction paths if enforcement is chosen;
 - unserialize and other engine-created object construction paths.
 
+Current Phase C wired points:
+
+- `ZEND_NEW`;
+- `ZEND_FETCH_CLASS`.
+
+This covers static and dynamic `new` in the focused tests. It does not yet
+cover the full operation matrix.
+
 ## Runtime Cache Hazards
 
 If an opcode cache slot stores a resolved CE, the next execution from a
@@ -79,6 +107,10 @@ different namespace must not skip access checking. Options:
 
 The simplest correct prototype is to always check restricted CEs after cache
 lookup. The fast path makes unrestricted classes cheap.
+
+The current Phase C spike checks restricted CEs after `ZEND_NEW` and
+`ZEND_FETCH_CLASS` cache lookup, which is why the first cache-order PHPTs cover
+both allowed-then-denied and denied-then-allowed flows.
 
 ## Error Messages
 
@@ -117,4 +149,3 @@ Denied:
 new Acme\Billing\ServiceImpl();
 Acme\Billing\ServiceImpl::class; // unresolved policy
 ```
-

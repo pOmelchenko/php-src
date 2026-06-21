@@ -32,4 +32,12 @@
 - Added six PHPT tests covering accepted syntax, rejected syntax, Reflection
   metadata, and tokenizer tokens.
 - Verified a Docker debug build, targeted PHPT run, and Docker ZTS debug build.
-- Runtime access enforcement is still not implemented.
+- Phase B did not implement runtime access enforcement.
+- Committed the Phase B parser/metadata spike as `af9e9790f52`.
+- Started incomplete experimental Phase C runtime enforcement.
+- Added a central class namespace visibility check and wired it into `ZEND_NEW`
+  and `ZEND_FETCH_CLASS`.
+- Added five Phase C PHPT tests for static `new`, dynamic `new $class`, method
+  caller namespace, segment-prefix rejection, and cache-order checks.
+- Verified Docker debug build, 11/11 targeted PHPT tests, and Docker ZTS debug
+  build for the Phase C spike.

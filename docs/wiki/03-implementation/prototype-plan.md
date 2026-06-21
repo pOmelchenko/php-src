@@ -19,7 +19,7 @@ Tasks:
 
 Goal: accept syntax and store metadata, without claiming complete enforcement.
 
-Status: in progress as an incomplete experimental spike.
+Status: committed as `af9e9790f52`.
 
 Tasks:
 
@@ -64,6 +64,8 @@ Current implementation notes:
 
 Goal: one authoritative class-like visibility check.
 
+Status: in progress as an incomplete experimental spike.
+
 The central function should receive:
 
 - target `zend_class_entry`;
@@ -80,6 +82,26 @@ Tasks:
 - add diagnostics;
 - wire into a minimal runtime path such as `new ClassName()`;
 - add PHPTs for allowed/denied same/child/sibling/prefix cases.
+
+Completed so far:
+
+- central fast-path check for unrestricted classes;
+- exact private namespace comparison;
+- protected descendant comparison by full namespace segment;
+- stable runtime `Error` message without absolute paths;
+- checks wired into `ZEND_NEW` and `ZEND_FETCH_CLASS`;
+- targeted tests for static `new`, dynamic `new $class`, method caller
+  namespace, segment-prefix false positives, and cache order.
+
+Known incomplete paths:
+
+- caller namespace is derived from named function/method metadata, not from a
+  full lexical per-operation source;
+- top-level namespace blocks are not correctly represented yet;
+- closures, arrow functions, `Closure::bind()`, eval, and trait composition
+  require a stronger caller namespace design;
+- inheritance, static access, types, aliases, Reflection construction, OPcache,
+  preload, and JIT are not complete.
 
 ## Phase D: Complete Access Coverage
 
@@ -135,7 +157,7 @@ Tasks:
 - document multiple roots and friend namespaces as future scope unless a later
   RFC expands them.
 
-## Commands Used for Phase B
+## Commands Used for Phase B and Phase C
 
 Docker debug build and targeted tests:
 
@@ -154,7 +176,26 @@ docker compose -f docker/dev/compose.yml run --rm php-src-dev bash -lc '
 '
 ```
 
-Result: passed, 6/6 PHPT tests.
+Result: passed, 6/6 Phase B PHPT tests.
+
+Phase C targeted tests:
+
+```sh
+sapi/cli/php run-tests.php -q \
+  Zend/tests/access_modifiers/ns_visibility_class_like_metadata.phpt \
+  Zend/tests/access_modifiers/ns_visibility_class_like_syntax.phpt \
+  Zend/tests/access_modifiers/ns_visibility_duplicate_modifier_error.phpt \
+  Zend/tests/access_modifiers/ns_visibility_anonymous_class_error.phpt \
+  Zend/tests/access_modifiers/ns_visibility_explicit_root_error.phpt \
+  ext/tokenizer/tests/ns_visibility_tokens.phpt \
+  Zend/tests/access_modifiers/ns_visibility_runtime_new_static.phpt \
+  Zend/tests/access_modifiers/ns_visibility_runtime_new_dynamic.phpt \
+  Zend/tests/access_modifiers/ns_visibility_runtime_method_namespace.phpt \
+  Zend/tests/access_modifiers/ns_visibility_runtime_segment_prefix.phpt \
+  Zend/tests/access_modifiers/ns_visibility_runtime_new_cache_order.phpt
+```
+
+Result: passed, 11/11 PHPT tests.
 
 Docker ZTS debug build:
 
