@@ -324,6 +324,9 @@ struct _zend_executor_globals {
 
 	zend_strtod_state strtod_state;
 
+	const zend_class_entry *callable_ns_visibility_cache_ce;
+	const zend_string *callable_ns_visibility_cache_caller_namespace;
+
 	HashTable callable_convert_cache;
 
 	void *reserved[ZEND_MAX_RESERVED_RESOURCES];

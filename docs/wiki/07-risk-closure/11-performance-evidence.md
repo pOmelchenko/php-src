@@ -40,8 +40,23 @@ OPcache/no-JIT Callgrind profile by another 16.00%. Public reruns remain within
 Gate 5; the only threshold blip, tracing-JIT `public_instanceof`, flips to
 -1.27% in a longer 200M-iteration rerun with high RSD.
 
+A third measured 2026-06-22 follow-up adds a callable-specific last-success
+cache for successful restricted namespace visibility checks, interns compiled
+lexical namespace strings, and inlines the successful callable cache hit path.
+The cache is kept in executor globals and is only populated for interned lexical
+namespace strings or the empty namespace. Container paired runs show public
+`public_callable_validation` remains within the retained public gate versus
+`master`, denied class checks remain within noise, and
+`private_allowed_callable_validation` improves by 3.2-5.4% over the
+callable-cache-only build in long callable reruns. The remaining
+private-vs-public callable gap is documented as profiler-limited residual
+overhead; attempts to shortcut it with an op-array-specific cache did not
+improve long-run parity and were rejected.
+
 Raw artifacts were kept outside the repository under
-`/tmp/nsvis-gate5-results/` and `/tmp/nsvis-perf-pass-20260622/`.
+`/tmp/nsvis-gate5-results/`, `/tmp/nsvis-perf-pass-20260622/`, and
+`/tmp/nsvis-callable-pass-20260622/`. The final callable parity pass lives in
+`/tmp/nsvis-callable-parity-20260622/`.
 
 ## Artifacts
 
@@ -71,6 +86,14 @@ Raw artifacts were kept outside the repository under
 | `nsvis-perf-pass-20260622/paired-exactcase-final-long/*` | Longer exact-case paired reruns for noisy public rows |
 | `nsvis-perf-pass-20260622/paired-exactcase-instanceof-200m/*` | Nine-pair 200M-iteration exact-case rerun for tracing-JIT `public_instanceof` |
 | `nsvis-perf-pass-20260622/exactcase-profiles/callgrind-*-private_allowed_callable_validation.out` | Exact-case Callgrind pair for the main restricted callable target |
+| `nsvis-callable-pass-20260622/paired-callable.json` | Seven-pair local before/after callable-cache rows |
+| `nsvis-callable-pass-20260622/paired-public-callable-long.json` | Longer local public callable-validation rerun for noisy OPcache rows |
+| `nsvis-callable-pass-20260622/profiles/callgrind-docker-*-opcache-nojit-*` | Docker Callgrind profiles for public and private callable-validation rows |
+| `nsvis-callable-parity-20260622/paired-master-vs-candidate-public-inline.json` | Seven-pair container public callable comparison against `master@0fff3ccce2f` |
+| `nsvis-callable-parity-20260622/paired-cache-only-vs-candidate-inline.json` | Seven-pair container cache-only/final callable and denied rows |
+| `nsvis-callable-parity-20260622/paired-cache-only-vs-candidate-inline-callable-10m.json` | Long 10M-iteration callable-only rerun |
+| `nsvis-callable-parity-20260622/profiles/callgrind-*-final-inline-*` | Final container Callgrind profiles for public/private callable rows |
+| `nsvis-callable-parity-20260622/ns_visibility_sizes-*.json` | Baseline/final structure size check |
 
 Rejected experiments were also saved (`current-cachehit-global*`,
 `current-globalflag*`). They are not retained: the executor-global
@@ -91,6 +114,9 @@ consumer access that must throw, so the shortcut was reverted.
 | Follow-up current commit | `96b5562a1b9b05548bd50848640af4ed8e5f216f` plus local restricted-check allocation removal |
 | Exact-case follow-up base | `585d82a6f662b9cd62ccc3d78db8472750037e7b` |
 | Exact-case follow-up candidate | `585d82a6f662b9cd62ccc3d78db8472750037e7b` plus local exact-case namespace-prefix fast path |
+| Callable parity public baseline | `0fff3ccce2f5f9e0695502a509fa8e8edf8f77d4` |
+| Callable parity cache-only base | `5a723c129e61363d4a762e522bdb02f9d9e7cff3` plus local callable namespace visibility last-success cache |
+| Callable parity final candidate | `5a723c129e61363d4a762e522bdb02f9d9e7cff3` plus callable cache, lexical namespace interning, and inline callable cache-hit path |
 | Container | `php-src-dev:bookworm` from `docker/dev/compose.yml` |
 | OS/CPU | Docker LinuxKit `6.12.76-linuxkit`, `aarch64`, 14 vCPU visible in container |
 | Compiler | `cc (Debian 12.2.0-14+deb12u1) 12.2.0` |
@@ -384,6 +410,90 @@ The allocation-removal profile still contained calls to
 `zend_binary_strncasecmp()` for the exact-case workload. The exact-case profile
 does not call that function on the retained hot path.
 
+### Callable Visibility Last-Success Cache
+
+After the exact-case prefix fast path, the remaining allowed
+`is_callable([$class, $method])` restricted-class cost was the repeated
+successful namespace visibility gate. The retained follow-up adds a
+callable-specific positive cache after the unrestricted class fast return. It is
+keyed by `zend_class_entry *` and the concrete caller namespace string pointer,
+and it does not cache denied checks. Compile-time lexical namespace strings are
+interned so the lifetime guard can also hit without OPcache. The successful hit
+path checks the cache before `ZSTR_IS_INTERNED()`, and the common no-range
+lexical namespace lookup is kept inline.
+
+All measurements below were built and run inside `php-src-dev:bookworm`.
+`master@0fff3ccce2f` predates the namespace-visibility syntax, so it is used
+only for public callable validation. The restricted before/after rows compare
+the callable-cache-only build with the final inline candidate. Each worker used
+three measured runs after one warmup.
+
+Public callable validation remains inside the `<= 3%` public gate versus
+`master`:
+
+| Mode | Measurement | Master | Final | Delta | RSD master/final |
+| --- | --- | ---: | ---: | ---: | ---: |
+| no OPcache | `public_callable_validation` | 45.603 | 45.043 | -1.23% | 4.55% / 0.93% |
+| OPcache, no JIT | `public_callable_validation` | 23.048 | 23.223 | +0.76% | 1.19% / 1.11% |
+| OPcache, function JIT | `public_callable_validation` | 21.730 | 21.956 | +1.04% | 1.46% / 1.96% |
+| OPcache, tracing JIT | `public_callable_validation` | 19.645 | 20.051 | +2.07% | 2.22% / 1.76% |
+
+Seven-pair container rows for the retained final candidate:
+
+| Mode | Measurement | Cache-only | Final | Delta | RSD before/after |
+| --- | --- | ---: | ---: | ---: | ---: |
+| no OPcache | `public_callable_validation` | 46.561 | 45.980 | -1.25% | 1.04% / 10.68% |
+| no OPcache | `private_allowed_callable_validation` | 52.112 | 50.379 | -3.33% | 5.02% / 7.09% |
+| no OPcache | `private_denied_new` | 424.196 | 424.038 | -0.04% | 0.62% / 1.01% |
+| OPcache, no JIT | `public_callable_validation` | 23.380 | 23.509 | +0.55% | 2.76% / 2.64% |
+| OPcache, no JIT | `private_allowed_callable_validation` | 26.004 | 25.022 | -3.78% | 1.91% / 1.90% |
+| OPcache, no JIT | `private_denied_new` | 417.625 | 418.379 | +0.18% | 0.77% / 0.80% |
+| OPcache, function JIT | `public_callable_validation` | 22.290 | 22.542 | +1.13% | 0.52% / 10.61% |
+| OPcache, function JIT | `private_allowed_callable_validation` | 24.818 | 23.412 | -5.67% | 8.78% / 1.58% |
+| OPcache, function JIT | `private_denied_new` | 424.629 | 433.267 | +2.03% | 0.83% / 3.41% |
+| OPcache, tracing JIT | `public_callable_validation` | 19.750 | 20.104 | +1.79% | 0.83% / 25.58% |
+| OPcache, tracing JIT | `private_allowed_callable_validation` | 22.871 | 21.238 | -7.14% | 1.26% / 1.91% |
+| OPcache, tracing JIT | `private_denied_new` | 417.812 | 416.837 | -0.23% | 1.09% / 0.74% |
+
+The short callable rows had a few high-RSD public outliers, so callable parity
+uses 10M-iteration workers:
+
+| Mode | Measurement | Cache-only | Final | Delta | RSD before/after |
+| --- | --- | ---: | ---: | ---: | ---: |
+| no OPcache | `public_callable_validation` | 46.354 | 46.026 | -0.71% | 0.62% / 0.61% |
+| no OPcache | `private_allowed_callable_validation` | 52.134 | 50.442 | -3.24% | 1.05% / 0.53% |
+| OPcache, no JIT | `public_callable_validation` | 23.115 | 23.531 | +1.80% | 0.43% / 0.73% |
+| OPcache, no JIT | `private_allowed_callable_validation` | 25.889 | 24.874 | -3.92% | 0.59% / 0.99% |
+| OPcache, function JIT | `public_callable_validation` | 22.037 | 22.363 | +1.48% | 0.93% / 0.25% |
+| OPcache, function JIT | `private_allowed_callable_validation` | 24.894 | 23.820 | -4.32% | 0.92% / 1.14% |
+| OPcache, tracing JIT | `public_callable_validation` | 20.096 | 20.107 | +0.06% | 0.81% / 8.51% |
+| OPcache, tracing JIT | `private_allowed_callable_validation` | 22.835 | 21.598 | -5.42% | 0.88% / 0.92% |
+
+Final private-vs-public callable overhead from the 10M rerun:
+
+| Mode | Public | Private allowed | Overhead | Result |
+| --- | ---: | ---: | ---: | --- |
+| no OPcache | 46.026 | 50.442 | +9.60% | Residual profiler-limited |
+| OPcache, no JIT | 23.531 | 24.874 | +5.71% | Residual profiler-limited |
+| OPcache, function JIT | 22.363 | 23.820 | +6.51% | Passes `<= 7%` |
+| OPcache, tracing JIT | 20.107 | 21.598 | +7.41% | Residual profiler-limited |
+
+Final Callgrind used no-OPcache and OPcache/no-JIT workers with 100000
+iterations:
+
+| Mode | Case | Cache-only Ir | Final Ir | Delta |
+| --- | --- | ---: | ---: | ---: |
+| no OPcache | `public_callable_validation` | 154,448,931 | 153,745,951 | -0.46% |
+| no OPcache | `private_allowed_callable_validation` | 173,763,295 | 162,863,797 | -6.27% |
+| OPcache, no JIT | `public_callable_validation` | 91,497,676 | 90,794,342 | -0.77% |
+| OPcache, no JIT | `private_allowed_callable_validation` | 99,829,371 | 96,726,578 | -3.11% |
+
+The remaining callable gap is no longer explained by non-interned lexical
+namespace strings or by the out-of-line namespace-range lookup. It is the cost
+of proving a restricted class callable remains allowed on each validation. The
+retained cache does not cache denied results and does not keep non-interned
+request-string pointers.
+
 ### Rejected Follow-Up Candidates
 
 The namespace-range lookup itself was not changed: profiling did not identify
@@ -398,6 +508,14 @@ allowing access from `Gate4\OpcacheRanges\OtherCase` to a
 `private(namespace)` class in `Gate4\OpcacheRanges\MiXeDCase`. The transformed
 optimizer opline was not a safe key for this decision, so the conservative
 `last_namespace_range > 0` fallback remains.
+
+A callable-specific op-array cache hit was also attempted after the inline
+candidate. It stored the last successful no-range caller op array in executor
+globals and still compared the current `op_array->lexical_namespace` pointer
+with the cached namespace pointer before returning. The long callable rerun did
+not improve parity: OPcache/no-JIT overhead was +7.75%, function JIT +7.65%,
+and tracing JIT +8.73%, all worse than the retained inline candidate. The
+extra executor-global field was removed.
 
 The public known-`INSTANCEOF` JIT cleanup was not pursued in this sweep. The
 paired public `instanceof` rows pass after the earlier cold-miss helper, and no

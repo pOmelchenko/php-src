@@ -1260,18 +1260,23 @@ static zend_string *zend_get_current_namespace(void)
 	return zend_string_copy(ZSTR_EMPTY_ALLOC());
 }
 
+static zend_string *zend_get_current_interned_namespace(void)
+{
+	return zend_new_interned_string(zend_get_current_namespace());
+}
+
 static void zend_set_op_array_lexical_namespace(zend_op_array *op_array)
 {
 	if (op_array->lexical_namespace) {
 		zend_string_release_ex(op_array->lexical_namespace, 0);
 	}
-	op_array->lexical_namespace = zend_get_current_namespace();
+	op_array->lexical_namespace = zend_get_current_interned_namespace();
 }
 
 static void zend_add_op_array_namespace_range(zend_op_array *op_array)
 {
 	uint32_t start = op_array->last;
-	zend_string *namespace_name = zend_get_current_namespace();
+	zend_string *namespace_name = zend_get_current_interned_namespace();
 
 	if (op_array->last_namespace_range > 0) {
 		zend_op_array_namespace_range *last_range =

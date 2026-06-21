@@ -3691,23 +3691,48 @@ static zend_always_inline zend_class_entry *get_scope(const zend_execute_data *f
 	return frame && frame->func ? frame->func->common.scope : NULL;
 }
 
-static const zend_string *zend_callable_frame_namespace(const zend_execute_data *frame)
+static zend_always_inline const zend_string *zend_callable_frame_namespace(const zend_execute_data *frame)
 {
 	if (frame && frame->func && ZEND_USER_CODE(frame->func->type)) {
-		return zend_get_op_array_lexical_namespace_at(&frame->func->op_array, frame->opline);
+		const zend_op_array *op_array = &frame->func->op_array;
+
+		if (EXPECTED(op_array->last_namespace_range == 0)) {
+			return op_array->lexical_namespace ?: ZSTR_EMPTY_ALLOC();
+		}
+
+		return zend_get_op_array_lexical_namespace_at(op_array, frame->opline);
 	}
 	return ZSTR_EMPTY_ALLOC();
 }
 
-static bool zend_check_callable_class_namespace_visibility(
+static zend_always_inline bool zend_check_callable_class_namespace_visibility(
 		const zend_class_entry *ce, const zend_execute_data *frame, char **error)
 {
+	const zend_string *caller_namespace;
 	zend_class_namespace_visibility_failure_mode failure_mode = error
 		? ZEND_CLASS_NAMESPACE_VISIBILITY_THROW
 		: ZEND_CLASS_NAMESPACE_VISIBILITY_SILENT_FALSE;
+	bool cacheable_namespace;
+	bool allowed;
 
-	return zend_check_class_namespace_visibility_from_fast(
-		ce, zend_callable_frame_namespace(frame), failure_mode);
+	if (!ZEND_CLASS_NAMESPACE_VISIBILITY_REQUIRED(ce)) {
+		return true;
+	}
+
+	caller_namespace = zend_callable_frame_namespace(frame);
+	if (EG(callable_ns_visibility_cache_ce) == ce
+			&& EG(callable_ns_visibility_cache_caller_namespace) == caller_namespace) {
+		return true;
+	}
+
+	cacheable_namespace = caller_namespace == ZSTR_EMPTY_ALLOC() || ZSTR_IS_INTERNED(caller_namespace);
+	allowed = zend_check_class_namespace_visibility_from(ce, caller_namespace, failure_mode);
+	if (allowed && cacheable_namespace) {
+		EG(callable_ns_visibility_cache_ce) = ce;
+		EG(callable_ns_visibility_cache_caller_namespace) = caller_namespace;
+	}
+
+	return allowed;
 }
 
 static bool zend_is_callable_check_class(zend_string *name, zend_class_entry *scope, const zend_execute_data *frame, zend_fcall_info_cache *fcc, bool *strict_class, char **error, bool suppress_deprecation) /* {{{ */

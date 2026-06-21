@@ -200,6 +200,9 @@ void init_executor(void) /* {{{ */
 	zend_fiber_init();
 	zend_weakrefs_init();
 
+	EG(callable_ns_visibility_cache_ce) = NULL;
+	EG(callable_ns_visibility_cache_caller_namespace) = NULL;
+
 	zend_hash_init(&EG(callable_convert_cache), 8, NULL, ZVAL_PTR_DTOR, 0);
 
 	EG(active) = 1;
