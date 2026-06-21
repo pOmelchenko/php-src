@@ -61,6 +61,15 @@ release process material, and `re2c` is missing. Because `configure`,
 `Makefile`, and a CLI binary are absent, PHPT tests were not runnable in this
 iteration.
 
+A Docker-based development environment is now available under
+[`docker/dev`](../../docker/dev/README.md). The image was built successfully on
+2026-06-21 and smoke-tested with:
+
+- GNU Bison 3.8.2;
+- re2c 3.0;
+- GNU Autoconf 2.71;
+- mounted checkout at `/workspaces/php-src`.
+
 ## Working Tree State
 
 Before creating this wiki, the worktree had no reported modified, staged, or
@@ -153,3 +162,9 @@ make -j$(sysctl -n hw.ncpu)
 TEST_PHP_ARGS="-q" make test TESTS="Zend/tests/access_modifiers"
 ```
 
+Using the Docker environment:
+
+```sh
+PHP_SRC_DEV_UID=$(id -u) PHP_SRC_DEV_GID=$(id -g) \
+  docker compose -f docker/dev/compose.yml run --rm php-src-dev
+```

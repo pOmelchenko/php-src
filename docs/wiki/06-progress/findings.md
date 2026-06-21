@@ -9,6 +9,9 @@
 - Local build environment is not ready for parser or PHPT work:
   `configure`, `Makefile`, and `sapi/cli/php` are absent; `re2c` is missing;
   Bison is GNU Bison 2.3.
+- A Docker development environment was added after the first documentation
+  iteration. The built image provides Bison 3.8.2, re2c 3.0, Autoconf 2.71, and
+  a mounted checkout at `/workspaces/php-src`.
 
 ## Prior Art
 
@@ -66,5 +69,6 @@ Most important design constraint:
 The feature appears feasible as a staged php-src implementation, but not as a
 small parser-only patch if complete enforcement is required. A correct feature
 crosses parser, compiler, class entries, class fetch, inheritance linking,
-type resolution, reflection, OPcache, preload, JIT, and tests.
-
+type resolution, reflection, OPcache, preload, JIT, and tests. The Docker
+environment removes the local generator-tool blocker for the next parser and
+metadata spike.

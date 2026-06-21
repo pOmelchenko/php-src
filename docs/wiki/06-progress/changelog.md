@@ -20,4 +20,6 @@
 - Added phased prototype plan.
 - Added English RFC draft with `Author: TBD`.
 - No C code, generated files, or PHPT tests were added.
-
+- Added Docker development environment under `docker/dev`.
+- Built and smoke-tested the Docker image with Bison 3.8.2, re2c 3.0, and
+  Autoconf 2.71.

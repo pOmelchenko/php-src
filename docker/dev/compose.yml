@@ -1,0 +1,22 @@
+services:
+  php-src-dev:
+    image: php-src-dev:bookworm
+    build:
+      context: ../..
+      dockerfile: docker/dev/Dockerfile
+      args:
+        USER_ID: ${PHP_SRC_DEV_UID:-1000}
+        GROUP_ID: ${PHP_SRC_DEV_GID:-1000}
+    working_dir: /workspaces/php-src
+    volumes:
+      - ../..:/workspaces/php-src
+      - php-src-dev-ccache:/home/php/.cache/ccache
+    environment:
+      CCACHE_DIR: /home/php/.cache/ccache
+      TEST_PHP_ARGS: "-q"
+    stdin_open: true
+    tty: true
+
+volumes:
+  php-src-dev-ccache:
+
