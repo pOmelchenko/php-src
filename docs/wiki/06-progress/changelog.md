@@ -115,3 +115,8 @@
   ranges, and inheritance/linking behavior with JIT enabled.
 - Verified Docker debug build, 4/4 focused JIT namespace-visibility PHPTs, and
   27/27 combined namespace-visibility PHPTs.
+- Moved namespace-visibility checks off public cache-hit paths and avoided
+  sharing restricted CEs in cache slots whose caller namespace can vary.
+- Removed the stored class-entry namespace root; restricted slow paths now
+  derive the lowercase root from `zend_class_entry::name`, returning
+  `sizeof(zend_class_entry)` to the baseline release NTS size.

@@ -121,7 +121,8 @@ part.
 - A final implementation still needs per-operation or op_array-level lexical
   namespace metadata that handles top-level namespace blocks, closures, arrow
   functions, eval, and `Closure::bind()`.
-- No OPcache, preload, or JIT behavior has been validated for enforcement yet.
+- At this phase, no OPcache, preload, or JIT behavior had been validated for
+  enforcement yet.
 
 ## Phase 2 Risk-Closure Findings
 
@@ -129,10 +130,14 @@ part.
   plus `protected(namespace)` namespace-subtree access.
 - The risk register contains 9 RESOLVED, 5 MITIGATED, 1 DEFERRED,
   2 ACCEPTED, and 0 BLOCKED risks.
-- Performance evidence is NOT MEASURED.
+- Performance evidence is measured and passes Gate 5 for the retained public
+  hot-path microbenchmarks. The large public cache-hit regressions,
+  class-entry storage overhead, and `public_instanceof` VM-layout regression
+  were fixed.
 - The current C prototype accepts class-level `private(namespace)` and
-  `protected(namespace)`, normalizes namespace comparison metadata, and covers
-  only a small runtime slice.
+  `protected(namespace)`, derives restricted namespace roots on the slow path,
+  and covers only a small runtime slice.
 - Gate 1 is reopened at the documentation level for the protected terminology
-  caveat. Gate 2 passes for the parser/metadata slice. Gates 3 through 5 are
-  not passed for the selected v1 implementation.
+  caveat. Gate 2 passes for the parser/metadata slice. Gates 3 and 4 pass for
+  the focused Docker debug-build coverage. Gate 5 is measured and passed for
+  retained public hot-path microbenchmarks.

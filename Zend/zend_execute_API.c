@@ -1720,6 +1720,22 @@ ZEND_API zend_string *zend_get_namespace_from_name(const zend_string *name)
 	return zend_string_init(ZSTR_VAL(name), separator - ZSTR_VAL(name), 0);
 }
 
+ZEND_API zend_string *zend_get_class_namespace_visibility_root(const zend_class_entry *ce)
+{
+	zend_string *namespace_name, *lc_namespace_name;
+
+	ZEND_ASSERT(ce->ce_flags2 & ZEND_ACC2_NAMESPACE_RESTRICTED);
+
+	namespace_name = zend_get_namespace_from_name(ce->name);
+	if (ZSTR_LEN(namespace_name) == 0) {
+		return namespace_name;
+	}
+
+	lc_namespace_name = zend_string_tolower(namespace_name);
+	zend_string_release_ex(namespace_name, 0);
+	return lc_namespace_name;
+}
+
 ZEND_API const zend_string *zend_get_op_array_lexical_namespace_at(
 		const zend_op_array *op_array, const zend_op *opline)
 {
@@ -1764,23 +1780,26 @@ ZEND_API const zend_string *zend_get_current_lexical_namespace(void)
 static bool zend_is_namespace_visibility_allowed(
 		const zend_class_entry *ce, const zend_string *caller_namespace)
 {
-	const zend_string *declaration_namespace = ce->namespace_visibility_namespace;
-
-	if (!declaration_namespace) {
-		declaration_namespace = ZSTR_EMPTY_ALLOC();
-	}
+	zend_string *declaration_namespace = zend_get_class_namespace_visibility_root(ce);
+	bool allowed;
 
 	if (zend_string_equals(declaration_namespace, caller_namespace)) {
-		return true;
+		allowed = true;
+		goto out;
 	}
 
 	if ((ce->ce_flags2 & ZEND_ACC2_NAMESPACE_PROTECTED) && ZSTR_LEN(declaration_namespace) > 0) {
-		return ZSTR_LEN(caller_namespace) > ZSTR_LEN(declaration_namespace)
+		allowed = ZSTR_LEN(caller_namespace) > ZSTR_LEN(declaration_namespace)
 			&& ZSTR_VAL(caller_namespace)[ZSTR_LEN(declaration_namespace)] == '\\'
 			&& memcmp(ZSTR_VAL(caller_namespace), ZSTR_VAL(declaration_namespace), ZSTR_LEN(declaration_namespace)) == 0;
+		goto out;
 	}
 
-	return false;
+	allowed = false;
+
+out:
+	zend_string_release_ex(declaration_namespace, 0);
+	return allowed;
 }
 
 ZEND_API bool zend_check_class_namespace_visibility_from(

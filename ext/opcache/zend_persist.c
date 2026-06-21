@@ -967,9 +967,6 @@ zend_class_entry *zend_persist_class_entry(zend_class_entry *orig_ce)
 			if (ce->parent_name && !(ce->ce_flags & ZEND_ACC_LINKED)) {
 				zend_accel_store_interned_string(ce->parent_name);
 			}
-			if (ce->namespace_visibility_namespace) {
-				zend_accel_store_interned_string(ce->namespace_visibility_namespace);
-			}
 		}
 
 		zend_hash_persist(&ce->function_table);

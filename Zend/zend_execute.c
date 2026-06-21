@@ -1155,9 +1155,7 @@ static zend_always_inline zend_class_entry *zend_fetch_ce_from_type(
 			return NULL;
 		}
 	}
-	if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
-			ce, zend_get_current_lexical_namespace(),
-			ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+	if (UNEXPECTED(!zend_check_class_namespace_visibility_current(ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
 		return NULL;
 	}
 	return ce;
@@ -3809,9 +3807,7 @@ static zend_never_inline zval* zend_fetch_static_property_address_ex(zend_proper
 		} else {
 			ce = Z_CE_P(EX_VAR(opline->op2.var));
 		}
-		if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
-				ce, zend_get_current_lexical_namespace(),
-				ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		if (UNEXPECTED(!zend_check_class_namespace_visibility_current(ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
 			FREE_OP(op1_type, opline->op1.var);
 			return NULL;
 		}
@@ -3821,9 +3817,7 @@ static zend_never_inline zval* zend_fetch_static_property_address_ex(zend_proper
 			return result;
 		}
 	}
-	if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
-			ce, zend_get_current_lexical_namespace(),
-			ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+	if (UNEXPECTED(!zend_check_class_namespace_visibility_current(ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
 		FREE_OP(op1_type, opline->op1.var);
 		return NULL;
 	}
@@ -3862,7 +3856,9 @@ static zend_never_inline zval* zend_fetch_static_property_address_ex(zend_proper
 	*prop_info = property_info;
 
 	if (EXPECTED(op1_type == IS_CONST)
-			&& EXPECTED(!(property_info->ce->ce_flags & ZEND_ACC_TRAIT))) {
+			&& EXPECTED(!(property_info->ce->ce_flags & ZEND_ACC_TRAIT))
+			&& EXPECTED(!ZEND_CLASS_NAMESPACE_VISIBILITY_REQUIRED(ce)
+				|| EX(func)->op_array.last_namespace_range == 0)) {
 		CACHE_POLYMORPHIC_PTR(cache_slot, ce, result);
 		CACHE_PTR(cache_slot + sizeof(void *) * 2, property_info);
 	}
@@ -3881,12 +3877,6 @@ static zend_always_inline zval* zend_fetch_static_property_address(zend_property
 	   && ((opline->op2.num & ZEND_FETCH_CLASS_MASK) == ZEND_FETCH_CLASS_SELF
 	    || (opline->op2.num & ZEND_FETCH_CLASS_MASK) == ZEND_FETCH_CLASS_PARENT)))
 	 && EXPECTED(CACHED_PTR(cache_slot + sizeof(void *)) != NULL)) {
-		zend_class_entry *ce = CACHED_PTR(cache_slot);
-		if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
-				ce, zend_get_current_lexical_namespace(),
-				ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
-			return NULL;
-		}
 		result = CACHED_PTR(cache_slot + sizeof(void *));
 		property_info = CACHED_PTR(cache_slot + sizeof(void *) * 2);
 

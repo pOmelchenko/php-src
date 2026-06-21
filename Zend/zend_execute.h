@@ -484,12 +484,24 @@ typedef enum _zend_class_namespace_visibility_failure_mode {
 	ZEND_CLASS_NAMESPACE_VISIBILITY_SILENT_FALSE,
 } zend_class_namespace_visibility_failure_mode;
 ZEND_API zend_string *zend_get_namespace_from_name(const zend_string *name);
+ZEND_API zend_string *zend_get_class_namespace_visibility_root(const zend_class_entry *ce);
 ZEND_API const zend_string *zend_get_op_array_lexical_namespace_at(
 	const zend_op_array *op_array, const zend_op *opline);
 ZEND_API const zend_string *zend_get_current_lexical_namespace(void);
 ZEND_API bool zend_check_class_namespace_visibility_from(
 	const zend_class_entry *ce, const zend_string *caller_namespace,
 	zend_class_namespace_visibility_failure_mode failure_mode);
+
+#define ZEND_CLASS_NAMESPACE_VISIBILITY_REQUIRED(ce) \
+	((ce)->ce_flags2 & ZEND_ACC2_NAMESPACE_RESTRICTED)
+
+#define zend_check_class_namespace_visibility_from_fast(ce, caller_namespace, failure_mode) \
+	(!ZEND_CLASS_NAMESPACE_VISIBILITY_REQUIRED(ce) \
+		|| zend_check_class_namespace_visibility_from((ce), (caller_namespace), (failure_mode)))
+
+#define zend_check_class_namespace_visibility_current(ce, failure_mode) \
+	zend_check_class_namespace_visibility_from_fast( \
+		(ce), zend_get_current_lexical_namespace(), (failure_mode))
 
 ZEND_API zend_function * ZEND_FASTCALL zend_fetch_function(zend_string *name);
 ZEND_API zend_function * ZEND_FASTCALL zend_fetch_function_str(const char *name, size_t len);

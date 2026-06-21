@@ -323,14 +323,20 @@ Not complete for this RFC:
 
 - trait body operations need original trait declaration namespace metadata;
 - broader RFC-readiness reconciliation and full test-suite coverage remain;
-- performance is not measured.
+- performance evidence is measured and currently passes the retained public
+  hot-path microbenchmark threshold.
 
 ## Performance
 
-Performance evidence is NOT MEASURED.
+Gate 5 performance evidence is measured and currently passes the retained
+public hot-path microbenchmark threshold. The large public cache-hit regressions
+found in static property access and callable validation were fixed by moving
+namespace checks to cache population. The later `public_instanceof` regression
+was traced to VM handler layout and fixed by moving the const-class miss path to
+a cold helper.
 
-The intended design requires a public fast path for unrestricted class-like
-declarations and reproducible benchmarks before voting.
+The intended design still requires a public fast path for unrestricted
+class-like declarations and passing reproducible benchmarks before voting.
 
 ## Rejected Alternatives
 

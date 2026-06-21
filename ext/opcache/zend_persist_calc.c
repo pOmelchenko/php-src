@@ -476,9 +476,6 @@ void zend_persist_class_entry_calc(zend_class_entry *ce)
 			if (ce->parent_name && !(ce->ce_flags & ZEND_ACC_LINKED)) {
 				ADD_INTERNED_STRING(ce->parent_name);
 			}
-			if (ce->namespace_visibility_namespace) {
-				ADD_INTERNED_STRING(ce->namespace_visibility_namespace);
-			}
 		}
 
 		zend_hash_persist_calc(&ce->function_table);

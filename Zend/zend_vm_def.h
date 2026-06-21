@@ -3569,9 +3569,7 @@ ZEND_VM_HANDLER(109, ZEND_FETCH_CLASS, UNUSED|CLASS_FETCH, CONST|TMP|UNUSED|CV, 
 	SAVE_OPLINE();
 	if (OP2_TYPE == IS_UNUSED) {
 		ce = zend_fetch_class(NULL, opline->op1.num);
-		if (UNEXPECTED(ce == NULL || !zend_check_class_namespace_visibility_from(
-				ce, zend_get_current_lexical_namespace(),
-				ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		if (UNEXPECTED(ce == NULL || !zend_check_class_namespace_visibility_current(ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
 			ZVAL_UNDEF(EX_VAR(opline->result.var));
 			HANDLE_EXCEPTION();
 		}
@@ -3585,9 +3583,7 @@ ZEND_VM_HANDLER(109, ZEND_FETCH_CLASS, UNUSED|CLASS_FETCH, CONST|TMP|UNUSED|CV, 
 			ce = zend_fetch_class_by_name(Z_STR_P(class_name), Z_STR_P(class_name + 1), opline->op1.num);
 			CACHE_PTR(opline->extended_value, ce);
 		}
-		if (UNEXPECTED(ce == NULL || !zend_check_class_namespace_visibility_from(
-				ce, zend_get_current_lexical_namespace(),
-				ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		if (UNEXPECTED(ce == NULL || !zend_check_class_namespace_visibility_current(ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
 			ZVAL_UNDEF(EX_VAR(opline->result.var));
 			HANDLE_EXCEPTION();
 		}
@@ -3597,9 +3593,7 @@ ZEND_VM_HANDLER(109, ZEND_FETCH_CLASS, UNUSED|CLASS_FETCH, CONST|TMP|UNUSED|CV, 
 ZEND_VM_C_LABEL(try_class_name):
 		if (Z_TYPE_P(class_name) == IS_OBJECT) {
 			ce = Z_OBJCE_P(class_name);
-			if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
-					ce, zend_get_current_lexical_namespace(),
-					ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+			if (UNEXPECTED(!zend_check_class_namespace_visibility_current(ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
 				ZVAL_UNDEF(EX_VAR(opline->result.var));
 				FREE_OP2();
 				HANDLE_EXCEPTION();
@@ -3607,9 +3601,7 @@ ZEND_VM_C_LABEL(try_class_name):
 			Z_CE_P(EX_VAR(opline->result.var)) = ce;
 		} else if (Z_TYPE_P(class_name) == IS_STRING) {
 			ce = zend_fetch_class(Z_STR_P(class_name), opline->op1.num);
-			if (UNEXPECTED(ce == NULL || !zend_check_class_namespace_visibility_from(
-					ce, zend_get_current_lexical_namespace(),
-					ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+			if (UNEXPECTED(ce == NULL || !zend_check_class_namespace_visibility_current(ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
 				ZVAL_UNDEF(EX_VAR(opline->result.var));
 				FREE_OP2();
 				HANDLE_EXCEPTION();
@@ -3821,15 +3813,6 @@ ZEND_VM_HANDLER(113, ZEND_INIT_STATIC_METHOD_CALL, UNUSED|CLASS_FETCH|CONST|VAR,
 	} else {
 		ce = Z_CE_P(EX_VAR(opline->op1.var));
 	}
-	if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
-			ce, zend_get_current_lexical_namespace(),
-			ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
-		if (OP2_TYPE != IS_UNUSED) {
-			FREE_OP2();
-		}
-		HANDLE_EXCEPTION();
-	}
-
 	if (OP1_TYPE == IS_CONST &&
 	    OP2_TYPE == IS_CONST &&
 	    EXPECTED((fbc = CACHED_PTR(opline->result.num + sizeof(void*))) != NULL)) {
@@ -3839,6 +3822,11 @@ ZEND_VM_HANDLER(113, ZEND_INIT_STATIC_METHOD_CALL, UNUSED|CLASS_FETCH|CONST|VAR,
 	           EXPECTED(CACHED_PTR(opline->result.num) == ce)) {
 		fbc = CACHED_PTR(opline->result.num + sizeof(void*));
 	} else if (OP2_TYPE != IS_UNUSED) {
+		if (UNEXPECTED(!zend_check_class_namespace_visibility_current(ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+			FREE_OP2();
+			HANDLE_EXCEPTION();
+		}
+
 		function_name = GET_OP2_ZVAL_PTR_UNDEF(BP_VAR_R);
 		if (OP2_TYPE != IS_CONST) {
 			if (UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
@@ -3875,7 +3863,9 @@ ZEND_VM_HANDLER(113, ZEND_INIT_STATIC_METHOD_CALL, UNUSED|CLASS_FETCH|CONST|VAR,
 		}
 		if (OP2_TYPE == IS_CONST &&
 		    EXPECTED(!(fbc->common.fn_flags & (ZEND_ACC_CALL_VIA_TRAMPOLINE|ZEND_ACC_NEVER_CACHE))) &&
-			EXPECTED(!(fbc->common.scope->ce_flags & ZEND_ACC_TRAIT))) {
+			EXPECTED(!(fbc->common.scope->ce_flags & ZEND_ACC_TRAIT)) &&
+			EXPECTED(!ZEND_CLASS_NAMESPACE_VISIBILITY_REQUIRED(ce)
+				|| EX(func)->op_array.last_namespace_range == 0)) {
 			CACHE_POLYMORPHIC_PTR(opline->result.num, ce, fbc);
 		}
 		if (EXPECTED(fbc->type == ZEND_USER_FUNCTION) && UNEXPECTED(!RUN_TIME_CACHE(&fbc->op_array))) {
@@ -3885,6 +3875,10 @@ ZEND_VM_HANDLER(113, ZEND_INIT_STATIC_METHOD_CALL, UNUSED|CLASS_FETCH|CONST|VAR,
 			FREE_OP2();
 		}
 	} else {
+		if (UNEXPECTED(!zend_check_class_namespace_visibility_current(ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+			HANDLE_EXCEPTION();
+		}
+
 		if (UNEXPECTED(ce->constructor == NULL)) {
 			zend_throw_error(NULL, "Cannot call constructor");
 			HANDLE_EXCEPTION();
@@ -4908,9 +4902,7 @@ ZEND_VM_HANDLER(107, ZEND_CATCH, CONST, JMP_ADDR, LAST_CATCH|CACHE_SLOT)
 	if (UNEXPECTED(catch_ce)) {
 		zend_object *prev_exception = EG(exception);
 		EG(exception) = NULL;
-		if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
-				catch_ce, zend_get_current_lexical_namespace(),
-				ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		if (UNEXPECTED(!zend_check_class_namespace_visibility_current(catch_ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
 			OBJ_RELEASE(prev_exception);
 			HANDLE_EXCEPTION();
 		}
@@ -6043,13 +6035,14 @@ ZEND_VM_HANDLER(68, ZEND_NEW, UNUSED|CLASS_FETCH|CONST|VAR, UNUSED|CACHE_SLOT, N
 				ZVAL_UNDEF(EX_VAR(opline->result.var));
 				HANDLE_EXCEPTION();
 			}
-			CACHE_PTR(opline->op2.num, ce);
-		}
-		if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
-				ce, zend_get_current_lexical_namespace(),
-				ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
-			ZVAL_UNDEF(EX_VAR(opline->result.var));
-			HANDLE_EXCEPTION();
+			if (UNEXPECTED(!zend_check_class_namespace_visibility_current(ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+				ZVAL_UNDEF(EX_VAR(opline->result.var));
+				HANDLE_EXCEPTION();
+			}
+			if (EXPECTED(!ZEND_CLASS_NAMESPACE_VISIBILITY_REQUIRED(ce)
+					|| EX(func)->op_array.last_namespace_range == 0)) {
+				CACHE_PTR(opline->op2.num, ce);
+			}
 		}
 	} else if (OP1_TYPE == IS_UNUSED) {
 		ce = zend_fetch_class(NULL, opline->op1.num);
@@ -6057,17 +6050,13 @@ ZEND_VM_HANDLER(68, ZEND_NEW, UNUSED|CLASS_FETCH|CONST|VAR, UNUSED|CACHE_SLOT, N
 			ZVAL_UNDEF(EX_VAR(opline->result.var));
 			HANDLE_EXCEPTION();
 		}
-		if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
-				ce, zend_get_current_lexical_namespace(),
-				ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		if (UNEXPECTED(!zend_check_class_namespace_visibility_current(ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
 			ZVAL_UNDEF(EX_VAR(opline->result.var));
 			HANDLE_EXCEPTION();
 		}
 	} else {
 		ce = Z_CE_P(EX_VAR(opline->op1.var));
-		if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
-				ce, zend_get_current_lexical_namespace(),
-				ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		if (UNEXPECTED(!zend_check_class_namespace_visibility_current(ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
 			ZVAL_UNDEF(EX_VAR(opline->result.var));
 			HANDLE_EXCEPTION();
 		}
@@ -6207,13 +6196,6 @@ ZEND_VM_HANDLER(181, ZEND_FETCH_CLASS_CONSTANT, VAR|CONST|UNUSED|CLASS_FETCH, CO
 	do {
 		if (OP1_TYPE == IS_CONST && OP2_TYPE == IS_CONST) {
 			if (EXPECTED(CACHED_PTR(opline->extended_value + sizeof(void*)))) {
-				ce = CACHED_PTR(opline->extended_value);
-				if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
-						ce, zend_get_current_lexical_namespace(),
-						ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
-					ZVAL_UNDEF(EX_VAR(opline->result.var));
-					HANDLE_EXCEPTION();
-				}
 				value = CACHED_PTR(opline->extended_value + sizeof(void*));
 				break;
 			}
@@ -6255,9 +6237,7 @@ ZEND_VM_HANDLER(181, ZEND_FETCH_CLASS_CONSTANT, VAR|CONST|UNUSED|CLASS_FETCH, CO
 			FREE_OP2();
 			ZEND_VM_NEXT_OPCODE();
 		}
-		if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
-				ce, zend_get_current_lexical_namespace(),
-				ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		if (UNEXPECTED(!zend_check_class_namespace_visibility_current(ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
 			ZVAL_UNDEF(EX_VAR(opline->result.var));
 			FREE_OP2();
 			HANDLE_EXCEPTION();
@@ -6323,7 +6303,9 @@ ZEND_VM_HANDLER(181, ZEND_FETCH_CLASS_CONSTANT, VAR|CONST|UNUSED|CLASS_FETCH, CO
 					HANDLE_EXCEPTION();
 				}
 			}
-			if (OP2_TYPE == IS_CONST && !is_constant_deprecated) {
+			if (OP2_TYPE == IS_CONST && !is_constant_deprecated
+					&& EXPECTED(!ZEND_CLASS_NAMESPACE_VISIBILITY_REQUIRED(ce)
+						|| EX(func)->op_array.last_namespace_range == 0)) {
 				CACHE_POLYMORPHIC_PTR(opline->extended_value, ce, value);
 			}
 		} else {
@@ -6828,9 +6810,7 @@ ZEND_VM_COLD_HANDLER(179, ZEND_UNSET_STATIC_PROP, ANY, ANY, CACHE_SLOT)
 	} else {
 		ce = Z_CE_P(EX_VAR(opline->op2.var));
 	}
-	if (UNEXPECTED(!zend_check_class_namespace_visibility_from(
-			ce, zend_get_current_lexical_namespace(),
-			ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+	if (UNEXPECTED(!zend_check_class_namespace_visibility_current(ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
 		FREE_OP1();
 		HANDLE_EXCEPTION();
 	}
@@ -8172,6 +8152,33 @@ ZEND_VM_HANDLER(105, ZEND_TICKS, ANY, ANY, NUM)
 	ZEND_VM_NEXT_OPCODE();
 }
 
+ZEND_VM_COLD_HELPER(zend_instanceof_const_class_miss_helper, ANY, ANY, zval *expr)
+{
+	USE_OPLINE
+	zend_class_entry *ce;
+	bool result;
+
+	SAVE_OPLINE();
+	ce = zend_lookup_class_ex(
+		Z_STR_P(RT_CONSTANT(opline, opline->op2)),
+		Z_STR_P(RT_CONSTANT(opline, opline->op2) + 1),
+		ZEND_FETCH_CLASS_NO_AUTOLOAD);
+	if (EXPECTED(ce)) {
+		if (UNEXPECTED(!zend_check_class_namespace_visibility_current(ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+			FREE_OP1();
+			ZVAL_UNDEF(EX_VAR(opline->result.var));
+			HANDLE_EXCEPTION();
+		}
+		if (EXPECTED(!ZEND_CLASS_NAMESPACE_VISIBILITY_REQUIRED(ce)
+				|| EX(func)->op_array.last_namespace_range == 0)) {
+			CACHE_PTR(opline->extended_value, ce);
+		}
+	}
+	result = ce && instanceof_function(Z_OBJCE_P(expr), ce);
+	FREE_OP1();
+	ZEND_VM_SMART_BRANCH(result, 1);
+}
+
 ZEND_VM_HANDLER(138, ZEND_INSTANCEOF, TMP|CV, UNUSED|CLASS_FETCH|CONST|VAR, CACHE_SLOT)
 {
 	USE_OPLINE
@@ -8188,27 +8195,24 @@ ZEND_VM_C_LABEL(try_instanceof):
 		if (OP2_TYPE == IS_CONST) {
 			ce = CACHED_PTR(opline->extended_value);
 			if (UNEXPECTED(ce == NULL)) {
-				ce = zend_lookup_class_ex(Z_STR_P(RT_CONSTANT(opline, opline->op2)), Z_STR_P(RT_CONSTANT(opline, opline->op2) + 1), ZEND_FETCH_CLASS_NO_AUTOLOAD);
-				if (EXPECTED(ce)) {
-					CACHE_PTR(opline->extended_value, ce);
-				}
+				ZEND_VM_DISPATCH_TO_HELPER(zend_instanceof_const_class_miss_helper, expr, expr);
 			}
-		} else if (OP2_TYPE == IS_UNUSED) {
-			ce = zend_fetch_class(NULL, opline->op2.num);
-			if (UNEXPECTED(ce == NULL)) {
+		} else {
+			if (OP2_TYPE == IS_UNUSED) {
+				ce = zend_fetch_class(NULL, opline->op2.num);
+				if (UNEXPECTED(ce == NULL)) {
+					FREE_OP1();
+					ZVAL_UNDEF(EX_VAR(opline->result.var));
+					HANDLE_EXCEPTION();
+				}
+			} else {
+				ce = Z_CE_P(EX_VAR(opline->op2.var));
+			}
+			if (UNEXPECTED(ce && !zend_check_class_namespace_visibility_current(ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
 				FREE_OP1();
 				ZVAL_UNDEF(EX_VAR(opline->result.var));
 				HANDLE_EXCEPTION();
 			}
-		} else {
-			ce = Z_CE_P(EX_VAR(opline->op2.var));
-		}
-		if (UNEXPECTED(ce && !zend_check_class_namespace_visibility_from(
-				ce, zend_get_current_lexical_namespace(),
-				ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
-			FREE_OP1();
-			ZVAL_UNDEF(EX_VAR(opline->result.var));
-			HANDLE_EXCEPTION();
 		}
 		result = ce && instanceof_function(Z_OBJCE_P(expr), ce);
 	} else if ((OP1_TYPE & (IS_VAR|IS_CV)) && Z_TYPE_P(expr) == IS_REFERENCE) {

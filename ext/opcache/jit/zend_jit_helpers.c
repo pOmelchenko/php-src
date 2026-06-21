@@ -201,9 +201,7 @@ static zend_class_entry* ZEND_FASTCALL zend_jit_find_class_helper(zend_execute_d
 	} else {
 		ce = Z_CE_P(EX_VAR(opline->op1.var));
 	}
-	if (UNEXPECTED(ce && !zend_check_class_namespace_visibility_from(
-			ce, zend_get_current_lexical_namespace(),
-			ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+	if (UNEXPECTED(ce && !zend_check_class_namespace_visibility_current(ce, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
 		return NULL;
 	}
 	return ce;
@@ -238,7 +236,9 @@ static zend_function* ZEND_FASTCALL zend_jit_find_static_method_helper(zend_exec
 			return NULL;
 		}
 		if (EXPECTED(!(fbc->common.fn_flags & (ZEND_ACC_CALL_VIA_TRAMPOLINE|ZEND_ACC_NEVER_CACHE))) &&
-			EXPECTED(!(fbc->common.scope->ce_flags & ZEND_ACC_TRAIT))) {
+			EXPECTED(!(fbc->common.scope->ce_flags & ZEND_ACC_TRAIT)) &&
+			EXPECTED(!ZEND_CLASS_NAMESPACE_VISIBILITY_REQUIRED(ce)
+				|| EX(func)->op_array.last_namespace_range == 0)) {
 			CACHE_POLYMORPHIC_PTR(opline->result.num, ce, fbc);
 		}
 		if (EXPECTED(fbc->type == ZEND_USER_FUNCTION) && UNEXPECTED(!RUN_TIME_CACHE(&fbc->op_array))) {

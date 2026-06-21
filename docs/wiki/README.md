@@ -129,7 +129,7 @@ Current Phase C working tree status:
 | Implementation | [runtime-enforcement.md](03-implementation/runtime-enforcement.md) | Implementation notes |
 | Implementation | [opcache-jit-and-preload.md](03-implementation/opcache-jit-and-preload.md) | Implementation notes |
 | Implementation | [reflection-and-tooling.md](03-implementation/reflection-and-tooling.md) | Implementation notes |
-| Implementation | [performance.md](03-implementation/performance.md) | Not measured |
+| Implementation | [performance.md](03-implementation/performance.md) | Measured; Gate 5 passed for retained microbenchmarks |
 | Implementation | [prototype-plan.md](03-implementation/prototype-plan.md) | Phased plan |
 | Tests | [test-matrix.md](04-tests/test-matrix.md) | Planned coverage |
 | Tests | [phpt-plan.md](04-tests/phpt-plan.md) | Planned tests |
@@ -274,10 +274,10 @@ Not run yet:
 
 - full `make test`;
 - full access-matrix PHPT suite;
-- OPcache behavior tests with `opcache.enable_cli=1`;
-- preload tests;
-- JIT behavior tests;
-- performance benchmarks.
+
+Focused OPcache, preload, JIT, and Gate 5 performance evidence has been
+measured for the namespace-visibility slice; see
+[07-risk-closure/11-performance-evidence.md](07-risk-closure/11-performance-evidence.md).
 
 Using the Docker environment:
 

@@ -5020,7 +5020,7 @@ ZEND_METHOD(ReflectionClass, getNamespaceVisibilityRoot)
 		RETURN_NULL();
 	}
 
-	RETURN_STR_COPY(ce->namespace_visibility_namespace);
+	RETURN_STR(zend_get_class_namespace_visibility_root(ce));
 }
 
 /* {{{ Returns whether this class is abstract */

@@ -3706,7 +3706,7 @@ static bool zend_check_callable_class_namespace_visibility(
 		? ZEND_CLASS_NAMESPACE_VISIBILITY_THROW
 		: ZEND_CLASS_NAMESPACE_VISIBILITY_SILENT_FALSE;
 
-	return zend_check_class_namespace_visibility_from(
+	return zend_check_class_namespace_visibility_from_fast(
 		ce, zend_callable_frame_namespace(frame), failure_mode);
 }
 

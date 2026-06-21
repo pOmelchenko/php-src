@@ -17,8 +17,8 @@
 | Global namespace defined | Done | [04](04-normative-semantics.md) |
 | Class-fetch coverage map | Done | [07](07-runtime-and-caches.md) |
 | Cache-order tests | Partial | Existing `new` cache-order test only |
-| OPcache/preload plan or results | Plan only | [07](07-runtime-and-caches.md), [14](14-implementation-gates.md) |
-| Performance evidence | Not done | [11](11-performance-evidence.md): NOT MEASURED |
+| OPcache/preload plan or results | Measured, passed for focused coverage | [07](07-runtime-and-caches.md), [14](14-implementation-gates.md) |
+| Performance evidence | Measured, passed for retained microbenchmarks | [11](11-performance-evidence.md): after-fix `public_instanceof` paired rows pass |
 | RFC draft updated | Done after this phase's RFC patch | [../05-rfc/draft.md](../05-rfc/draft.md) |
 | Future Scope separated | Done | RFC draft and [13](13-rfc-splitting.md) |
 | No hidden security claims | Done | [10](10-compatibility-and-security.md), [15](15-accepted-risks.md) |
@@ -29,5 +29,6 @@
 Ready for RFC discussion: **not yet**. The documentation is discussion-ready,
 but the implementation gates are not.
 
-Ready for RFC voting: **no**. Gate 3 through Gate 5 are not passed for the
-selected private/protected v1 model.
+Ready for RFC voting: **no** until the remaining RFC-readiness reconciliation,
+generated artifacts, and broader coverage work are complete. Gate 5 performance
+is no longer the blocker in the retained microbenchmark gate.

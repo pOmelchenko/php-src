@@ -2128,7 +2128,6 @@ ZEND_API void zend_initialize_class_data(zend_class_entry *ce, bool nullify_hand
 	ce->refcount = 1;
 	ce->ce_flags = ZEND_ACC_CONSTANTS_UPDATED;
 	ce->ce_flags2 = 0;
-	ce->namespace_visibility_namespace = NULL;
 
 	if (CG(compiler_options) & ZEND_COMPILE_GUARDS) {
 		ce->ce_flags |= ZEND_ACC_USE_GUARDS;
@@ -9672,9 +9671,6 @@ static void zend_compile_class_decl(znode *result, const zend_ast *ast, bool top
 			ZEND_ASSERT(namespace_visibility & ZEND_AST_CLASS_NAMESPACE_PROTECTED);
 			ce->ce_flags2 |= ZEND_ACC2_NAMESPACE_PROTECTED;
 		}
-		ce->namespace_visibility_namespace = FC(current_namespace)
-			? zend_string_tolower(FC(current_namespace))
-			: zend_string_copy(ZSTR_EMPTY_ALLOC());
 	}
 	ce->info.user.filename = zend_string_copy(zend_get_compiled_filename());
 	ce->info.user.line_start = decl->start_lineno;

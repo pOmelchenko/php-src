@@ -360,9 +360,6 @@ ZEND_API void destroy_zend_class(zval *zv)
 				if (ce->doc_comment) {
 					zend_string_release_ex(ce->doc_comment, 0);
 				}
-				if (ce->namespace_visibility_namespace) {
-					zend_string_release_ex(ce->namespace_visibility_namespace, 0);
-				}
 
 				if (ce->attributes) {
 					zend_hash_release(ce->attributes);
@@ -451,9 +448,6 @@ ZEND_API void destroy_zend_class(zval *zv)
 		case ZEND_INTERNAL_CLASS:
 			if (ce->doc_comment) {
 				zend_string_release_ex(ce->doc_comment, 1);
-			}
-			if (ce->namespace_visibility_namespace) {
-				zend_string_release_ex(ce->namespace_visibility_namespace, 1);
 			}
 
 			if (ce->backed_enum_table) {

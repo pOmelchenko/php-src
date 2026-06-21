@@ -76,7 +76,17 @@ Required:
 - commands and configuration saved;
 - results from multiple runs.
 
-Status: **Not passed**. Performance is NOT MEASURED.
+Status: **Passed for retained microbenchmarks**. Performance is measured. The
+large public cache-hit regressions in static property access and callable
+validation were traced to
+repeated namespace checks on public cache hits and fixed by moving the checks to
+cache population. The class-entry storage overhead was also eliminated:
+`sizeof(zend_class_entry)` is back to 528 bytes in the release NTS container.
+The remaining `public_instanceof` regression was traced to an AArch64 VM handler
+layout issue and fixed by moving the const-class miss path to a cold helper. The
+latest long paired run shows -0.49% without OPcache, -5.01% with
+OPcache/no-JIT, +0.14% under function JIT, and +2.20% under tracing JIT. See
+[11-performance-evidence.md](11-performance-evidence.md).
 
 ## Gate 6: RFC Readiness
 
@@ -94,6 +104,5 @@ Status: **Partially passed for documentation**, **not passed for voting**.
 
 The C prototype is still marked incomplete because:
 
-- Gate 5 performance is not measured;
 - remaining RFC-readiness work must reconcile documentation, generated
   artifacts, and broader test coverage outside the focused prototype slices.

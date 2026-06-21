@@ -2,16 +2,12 @@
 
 ## Metadata Persistence
 
-Namespace visibility metadata stored on `zend_class_entry` is persisted and
-restored in:
-
-- `ext/opcache/zend_persist.c`;
-- `ext/opcache/zend_persist_calc.c`.
-
-The file-cache path also serializes/deserializes
-`zend_class_entry::namespace_visibility_namespace` in
-`ext/opcache/zend_file_cache.c`. `ce_flags2` survives as part of the serialized
-class-entry body.
+Class namespace visibility uses `zend_class_entry::ce_flags2` for the
+restricted/private/protected bits. `ce_flags2` survives OPcache shared-memory
+persistence and file-cache replay as part of the serialized class-entry body.
+The namespace-visibility root is not stored separately; restricted classes
+derive the lowercase root from `zend_class_entry::name` on the restricted slow
+path.
 
 Caller namespace metadata on `zend_op_array` is persisted for:
 

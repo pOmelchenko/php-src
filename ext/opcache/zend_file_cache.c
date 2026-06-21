@@ -807,7 +807,6 @@ static void zend_file_cache_serialize_class(zval                     *zv,
 	UNSERIALIZE_PTR(ce);
 
 	SERIALIZE_STR(ce->name);
-	SERIALIZE_STR(ce->namespace_visibility_namespace);
 	if (ce->parent) {
 		if (!(ce->ce_flags & ZEND_ACC_LINKED)) {
 			SERIALIZE_STR(ce->parent_name);
@@ -1702,7 +1701,6 @@ static void zend_file_cache_unserialize_class(zval                    *zv,
 	ce = Z_PTR_P(zv);
 
 	UNSERIALIZE_STR(ce->name);
-	UNSERIALIZE_STR(ce->namespace_visibility_namespace);
 	if (!(ce->ce_flags & ZEND_ACC_ANON_CLASS)) {
 		if (!script->corrupted) {
 			zend_accel_get_class_name_map_ptr(ce->name);

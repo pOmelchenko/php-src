@@ -72,6 +72,10 @@ normal project conventions, not untrusted-code isolation.
 
 ## Performance Risk
 
-Performance is NOT MEASURED for the selected v1 model. RFC voting must wait for
-Gate 5 evidence: public fast path, structure size impact, OPcache on/off, JIT
-on/off where available, and multiple benchmark runs.
+Performance is measured for the selected v1 prototype and currently passes Gate
+5 for the retained public hot-path microbenchmarks. The large public cache-hit
+regressions, class-entry storage overhead, and `public_instanceof` VM-layout
+regression were fixed.
+
+Representative application benchmarks remain useful future evidence, but the
+retained Gate 5 microbenchmark threshold is no longer the blocker.
