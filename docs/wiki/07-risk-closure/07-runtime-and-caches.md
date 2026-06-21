@@ -42,11 +42,11 @@ The implementation must find every path that produces or reuses a
 | Aliases | `class_alias()` | Metadata belongs to CE; alias use still checks | `ns_visibility_gate3_callables_reflection_serialization.phpt` | Planned | GATE 3 IMPLEMENTED |
 | Unserialize | payload class names | Yes before object allocation | `ns_visibility_gate3_callables_reflection_serialization.phpt` | Planned | GATE 3 IMPLEMENTED |
 | OPcache/preload | optimized/persistent CE | Shared-memory and file-cache metadata persisted; optimizer restricted-CE shortcuts guarded; preload metadata/linking validated | Gate 3 base tests | `ns_visibility_opcache_cli.phpt`, `ns_visibility_opcache_namespace_ranges.phpt`, `ns_visibility_opcache_file_cache.phpt`, `ns_visibility_preload.phpt`, `ns_visibility_preload_linking.phpt` | GATE 4 IMPLEMENTED |
-| JIT | optimized class fetch/static paths | Deferred | Not run | Not run | DEFERRED |
+| JIT | optimized class fetch/static paths | Yes; known restricted CEs are checked or rejected for compile-time substitution, and the runtime class helper checks before returning CE | `ns_visibility_jit_function.phpt`, `ns_visibility_jit_tracing.phpt`, `ns_visibility_jit_namespace_ranges.phpt`, `ns_visibility_jit_inheritance_linking.phpt` | Same files | GATE 4+ IMPLEMENTED |
 
 `GATE 4 IMPLEMENTED` means the C prototype has targeted PHPT coverage for the
-semantic path with OPcache/preload enabled, without claiming JIT or benchmark
-completion.
+semantic path with OPcache/preload enabled. `GATE 4+ IMPLEMENTED` additionally
+covers JIT correctness. Neither status claims benchmark completion.
 
 ## Acceptance Criterion
 
@@ -64,4 +64,4 @@ Therefore:
   precomputed success;
 - preload must not turn a restricted CE into a public CE;
 - JIT must not replace a checked class fetch with an unchecked CE constant for
-  restricted classes. This remains the next cache-related validation item.
+  restricted classes.

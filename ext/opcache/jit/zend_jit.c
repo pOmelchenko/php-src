@@ -564,6 +564,22 @@ static bool zend_jit_is_persistent_constant(zval *key, uint32_t flags)
 	return c && (ZEND_CONSTANT_FLAGS(c) & CONST_PERSISTENT);
 }
 
+static bool zend_jit_known_class_visible_from_opline(
+		const zend_op_array *op_array, const zend_op *opline, const zend_class_entry *ce)
+{
+	if (!ce || !(ce->ce_flags2 & ZEND_ACC2_NAMESPACE_RESTRICTED)) {
+		return true;
+	}
+	if (op_array && op_array->last_namespace_range > 0) {
+		return false;
+	}
+
+	return zend_check_class_namespace_visibility_from(
+		ce,
+		zend_get_op_array_lexical_namespace_at(op_array, opline),
+		ZEND_CLASS_NAMESPACE_VISIBILITY_SILENT_FALSE);
+}
+
 static zend_class_entry* zend_get_known_class(const zend_op_array *op_array, const zend_op *opline, uint8_t op_type, znode_op op)
 {
 	zend_class_entry *ce = NULL;
@@ -596,6 +612,10 @@ static zend_class_entry* zend_get_known_class(const zend_op_array *op_array, con
 				}
 			}
 		}
+	}
+
+	if (!zend_jit_known_class_visible_from_opline(op_array, opline, ce)) {
+		ce = NULL;
 	}
 
 	return ce;

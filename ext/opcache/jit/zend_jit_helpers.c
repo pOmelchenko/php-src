@@ -201,6 +201,11 @@ static zend_class_entry* ZEND_FASTCALL zend_jit_find_class_helper(zend_execute_d
 	} else {
 		ce = Z_CE_P(EX_VAR(opline->op1.var));
 	}
+	if (UNEXPECTED(ce && !zend_check_class_namespace_visibility_from(
+			ce, zend_get_current_lexical_namespace(),
+			ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		return NULL;
+	}
 	return ce;
 }
 

@@ -303,23 +303,26 @@ The feature is for architectural enforcement in cooperating codebases.
 
 ## Implementation Status
 
-Current local prototype status: incomplete experimental private/protected
-namespace visibility slice.
+Current local prototype status: experimental private/protected namespace
+visibility slice with focused enforcement, OPcache/preload, and JIT correctness
+coverage.
 
 Implemented in the spike:
 
 - parser and metadata support for `private(namespace)` and
   `protected(namespace)`;
 - Reflection metadata methods for private and protected namespace visibility;
-- partial OPcache metadata persistence;
-- partial runtime enforcement for `new` and `ZEND_FETCH_CLASS`.
+- runtime enforcement for representative class-name semantic operations,
+  linking, type positions, callables, aliases, Reflection construction, and
+  unserialization;
+- OPcache metadata persistence, file-cache replay, optimizer shortcut checks,
+  and preload/linking checks;
+- JIT known-class/helper checks validated under function and tracing JIT.
 
 Not complete for this RFC:
 
 - trait body operations need original trait declaration namespace metadata;
-- static access, inheritance, type resolution, `instanceof`, `catch`,
-  callables, aliases, Reflection instantiation, unserialization, OPcache,
-  preload, and JIT are not fully enforced;
+- broader RFC-readiness reconciliation and full test-suite coverage remain;
 - performance is not measured.
 
 ## Performance

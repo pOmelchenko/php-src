@@ -67,7 +67,8 @@ The implementation must prove either:
 
 ## JIT
 
-JIT known-class and helper paths must not bypass visibility checks:
+JIT known-class and helper paths must not bypass visibility checks. The
+validation/fix gate covers:
 
 - `ext/opcache/jit/zend_jit.c` has `zend_get_known_class()` around line 567.
 - It also performs trait lookup around line 737.
@@ -75,8 +76,18 @@ JIT known-class and helper paths must not bypass visibility checks:
   around line 188.
 
 If JIT substitutes a known CE for a class fetch, it must either prove the CE is
-unrestricted or preserve a runtime check for restricted CEs. This remains
-explicitly deferred after Gate 4.
+unrestricted or preserve a runtime check for restricted CEs. The current
+prototype rejects compile-time restricted CE substitution when a top-level
+op_array uses namespace ranges, and otherwise verifies the restricted CE against
+the op_array lexical namespace. The runtime JIT class helper checks
+`zend_get_current_lexical_namespace()` before returning a CE.
+
+JIT validation tests cover:
+
+- function JIT;
+- tracing JIT;
+- top-level namespace ranges with source-casing diagnostics;
+- inheritance/linking behavior with JIT enabled.
 
 ## Cache Invalidation
 
@@ -86,7 +97,6 @@ script invalidation when the declaring file changes. Gate 4 tests compare:
 - OPcache enabled;
 - OPcache file-cache replay;
 - preload where available;
+- JIT function/tracing modes;
 - allowed-then-denied order;
 - denied-then-allowed order.
-
-JIT stays excluded from these tests by setting `opcache.jit=0`.

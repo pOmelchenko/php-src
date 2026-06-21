@@ -60,7 +60,11 @@ Status: **Passed for OPcache/preload in the Docker debug build**. Gate 4
 persists class and lexical caller metadata through OPcache shared memory and
 file cache, keeps optimizer class-constant/static-method shortcuts from
 bypassing restricted CEs, validates OPcache CLI and file-cache replay, and
-validates preload metadata plus dependency linking. JIT remains outside Gate 4.
+validates preload metadata plus dependency linking.
+
+JIT validation after Gate 4 is **passed in the Docker debug build** for function
+JIT, tracing JIT, namespace ranges, and inheritance/linking behavior. This closes
+the deferred JIT correctness risk without making any performance claim.
 
 ## Gate 5: Performance
 
@@ -91,6 +95,5 @@ Status: **Partially passed for documentation**, **not passed for voting**.
 The C prototype is still marked incomplete because:
 
 - Gate 5 performance is not measured;
-- JIT behavior remains deferred to a separate validation/fix gate;
 - remaining RFC-readiness work must reconcile documentation, generated
   artifacts, and broader test coverage outside the focused prototype slices.

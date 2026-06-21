@@ -107,4 +107,11 @@
   ranges, file-cache replay, preload metadata, and preload dependency linking.
 - Verified Docker debug build and 5/5 focused Gate 4 OPcache/preload PHPTs
   with `opcache.jit=0`; then verified the combined Gate 3/Gate 4
-  namespace-visibility run at 23/23 passed. JIT remains deferred.
+  namespace-visibility run at 23/23 passed. JIT remained deferred at that point.
+- Implemented the deferred JIT namespace visibility validation gate.
+- Added JIT-side restricted CE guards for compile-time known classes and the
+  runtime static-class helper.
+- Added four JIT PHPTs covering function JIT, tracing JIT, top-level namespace
+  ranges, and inheritance/linking behavior with JIT enabled.
+- Verified Docker debug build, 4/4 focused JIT namespace-visibility PHPTs, and
+  27/27 combined namespace-visibility PHPTs.

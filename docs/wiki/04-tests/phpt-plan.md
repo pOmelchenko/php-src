@@ -171,6 +171,10 @@ Gate 4 focused OPcache/preload result on 2026-06-21: 5/5 passed in the Docker
 debug build with `opcache.jit=0`. The combined Gate 3/Gate 4 namespace
 visibility run passed 23/23 in the same environment.
 
+JIT validation result on 2026-06-21: 4/4 focused JIT namespace-visibility tests
+passed in the Docker debug build, covering function JIT, tracing JIT, namespace
+ranges, and inheritance/linking behavior.
+
 Last executed after private/protected alignment:
 
 ```sh
@@ -189,16 +193,16 @@ sapi/cli/php run-tests.php -q \
   ext/tokenizer/tests/ns_visibility_tokens.phpt
 ```
 
-Current broad namespace-visibility result after Gate 4 edits: 23/23 passed in
-the Docker debug build.
+Current broad namespace-visibility result after the JIT validation gate: 27/27
+passed in the Docker debug build.
 
 Not run in Phase 2:
 
 - remaining v1 tests outside the implemented prototype and Gate 3 focused
   slices;
 - full `make test`;
-- JIT tests;
 - benchmark tests.
 
-Reason: Gate 4 covers OPcache/preload/file-cache behavior in the Docker debug
-build, but JIT behavior and performance evidence are later gates.
+Reason: Gate 4 covers OPcache/preload/file-cache behavior and the follow-up JIT
+validation covers JIT correctness in the Docker debug build, but performance
+evidence remains a later gate.

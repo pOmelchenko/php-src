@@ -108,15 +108,12 @@ Completed so far in the experimental spike:
   parent/sibling denial, case normalization,
   segment-prefix false positives, and cache order.
 
-Known incomplete paths for RFC v1:
+Earlier incomplete paths for RFC v1, now addressed by later gates:
 
-- caller namespace is derived from named function/method metadata, not from a
-  full lexical per-operation source;
-- top-level namespace blocks are not correctly represented yet;
-- closures, arrow functions, `Closure::bind()`, eval, and trait composition
-  require a stronger caller namespace design;
+- lexical caller namespace is represented on user op_arrays and top-level
+  namespace ranges;
 - inheritance, static access, types, aliases, Reflection construction, OPcache,
-  preload, and JIT are not complete.
+  preload, and JIT have focused correctness coverage.
 
 Additional fixes required:
 
