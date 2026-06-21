@@ -48,8 +48,8 @@ private(namespace) enum State {}
 
 ```php
 private(namespace) class Service {}
-private(namespace: descendants) class SubtreeService {}
-private(namespace: \Acme\Billing) class RootedService {}
+protected(namespace) class SubtreeService {}
+protected(namespace: \Acme\Billing) class RootedService {}
 ```
 
 | Dimension | Assessment |
@@ -67,20 +67,20 @@ private(namespace: \Acme\Billing) class RootedService {}
 
 ## Decision
 
-First RFC scope: **Scope B, exact-only class-like declarations**.
+First RFC scope after the bounded-context correction:
+**Scope B plus declaring-namespace subtree visibility**.
 
-Scope B is the smallest coherent language feature for class-like symbols. Scope A
-is a valid fallback if Gate 3 shows trait/interface/enum enforcement cannot be
-completed, but starting with Scope B avoids an artificial split between classes
-and the other named declarations stored as `zend_class_entry`.
+The earlier exact-only Scope B is implementable but does not satisfy the
+bounded-context use case because `App\Billing\Domain` cannot access declarations
+in `App\Billing`. The revised first RFC therefore keeps class-like declarations
+as the unit of support and adds `protected(namespace)` for the declaring
+namespace subtree. Scope A remains a fallback only if traits/interfaces/enums
+cannot pass enforcement gates.
 
 Excluded from the first RFC:
 
-- descendant namespaces;
 - explicit root;
-- `protected(namespace)`;
 - `private class`;
 - module/package/internal visibility;
 - friend namespaces;
 - native consistent accessibility.
-

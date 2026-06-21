@@ -1,6 +1,7 @@
 # Performance Evidence
 
-Performance evidence is **NOT MEASURED** for the selected exact-only v1 model.
+Performance evidence is **NOT MEASURED** for the selected private/protected v1
+model.
 The existing Phase C spike is not complete enough to benchmark as RFC evidence.
 
 ## Required Benchmark Record
@@ -46,4 +47,3 @@ if (!(ce->ce_flags2 & ZEND_ACC2_NAMESPACE_RESTRICTED)) {
 
 This is not a benchmark result. Gate 5 remains failed until measurements are
 recorded with reproducible commands and multiple runs.
-

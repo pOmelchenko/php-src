@@ -11,7 +11,7 @@ Expected parser changes:
 - `private(namespace) interface I {}` becomes valid;
 - `private(namespace) trait T {}` becomes valid;
 - `private(namespace) enum E {}` becomes valid;
-- `protected(namespace)` remains invalid for class-like declarations in RFC v1;
+- `protected(namespace)` class-like declarations become valid;
 - `private class A {}` remains outside this RFC.
 
 ## Keyword and Token Impact
@@ -63,4 +63,3 @@ and receive exact namespace access. This is ACCEPTED because the mechanism is
 for architectural expression in cooperating codebases, not isolation of
 untrusted code. Composer package identity, filesystem ownership, module
 identity, and sandboxing are outside RFC v1.
-

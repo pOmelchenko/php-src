@@ -1,8 +1,8 @@
 # Open Questions
 
-For the exact-only RFC v1 model, no semantic question remains unresolved. Items
-from the first phase are now either resolved, deferred, accepted, or assigned to
-an implementation gate.
+For the revised RFC v1 model, no semantic question remains unresolved. Items
+from the first phase are now either resolved, mitigated, deferred, accepted, or
+assigned to an implementation gate.
 
 ## Closed for RFC v1
 
@@ -16,14 +16,14 @@ an implementation gate.
 | Alias behavior | RESOLVED | CE metadata preserved |
 | Error timing | RESOLVED | Check after target CE resolution |
 | Runtime membrane | RESOLVED | Not an object membrane |
+| Descendant namespace visibility | RESOLVED | `protected(namespace)` with segment-aware subtree check |
+| `protected(namespace)` meaning | MITIGATED | Class-level subtree meaning is explicit; terminology risk remains |
 
 ## Deferred from RFC v1
 
 | Question | Disposition | Future work |
 | --- | --- | --- |
-| Descendant namespace visibility | DEFERRED | RFC B |
 | Explicit root syntax | DEFERRED | RFC C |
-| `protected(namespace)` meaning | DEFERRED | Separate inheritance/descendant syntax decision |
 | Native consistent accessibility | DEFERRED | Separate RFC after type/autoload analysis |
 | Module/package `internal` | DEFERRED | Module/package RFC |
 | Friend namespaces | DEFERRED | Friend/package visibility RFC |

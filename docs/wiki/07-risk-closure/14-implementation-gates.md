@@ -26,9 +26,10 @@ Required:
 - Reflection/debug output exposes metadata;
 - PHPT parser tests pass.
 
-Status: **Not passed for selected v1**. The Phase B prototype parses both
-`private(namespace)` and `protected(namespace)`, while v1 must reject
-`protected(namespace)` for class-like declarations.
+Status: **Passed for the private/protected parser/metadata prototype slice**.
+The working tree parses `private(namespace)` and `protected(namespace)`, stores
+normalized declaration namespace metadata, exposes Reflection metadata, and
+passes targeted parser/tokenizer PHPTs.
 
 ## Gate 3: Enforcement Coverage
 
@@ -87,6 +88,4 @@ The C prototype is marked incomplete because:
 - it does not enforce every operation promised by the symbol-visibility model;
 - static access, inheritance, types, Reflection, aliases, OPcache/preload, and
   `instanceof`/`catch` are not fully covered;
-- performance is not measured;
-- the prototype still implements descendant `protected(namespace)`, which is not
-  part of RFC v1.
+- performance is not measured.

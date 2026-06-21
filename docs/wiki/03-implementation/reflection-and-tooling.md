@@ -52,6 +52,9 @@ introduced, update:
 PR #20421 changes tokenizer support for member `private(namespace)` and is
 useful prior art.
 
+The current prototype exposes both namespace visibility tokens. Explicit-root
+forms are not tokenized or parsed yet.
+
 ## Static Analysis and IDEs
 
 Tools need to understand:
@@ -70,4 +73,3 @@ Recommended analyzer behavior before a final RFC:
 - warn on external direct use of restricted names;
 - warn that `internal` is not part of the first prototype;
 - model object escape through public interfaces as allowed.
-

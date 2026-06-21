@@ -21,4 +21,3 @@ T_STRING: A
 T_PROTECTED_NAMESPACE: protected(namespace)
 T_INTERFACE: interface
 T_STRING: I
-

@@ -1,13 +1,14 @@
 # Test Matrix
 
-This matrix targets exact-only RFC v1:
+This matrix targets revised RFC v1:
 
 ```php
 private(namespace) class-like declarations
+protected(namespace) class-like declarations
 ```
 
-`protected(namespace)`, descendants, and explicit root syntax are Future Scope
-and must not be treated as v1 acceptance tests.
+Explicit root syntax remains Future Scope and must not be treated as a v1
+acceptance test.
 
 ## Syntax
 
@@ -17,7 +18,7 @@ and must not be treated as v1 acceptance tests.
 | T-SYN-002 | RISK-003 | Accepted | `private(namespace) interface I {}` | Parses |
 | T-SYN-003 | RISK-003 | Accepted | `private(namespace) trait T {}` | Parses |
 | T-SYN-004 | RISK-003 | Accepted | `private(namespace) enum E { case A; }` | Parses |
-| T-SYN-005 | RISK-001 | Rejected | `protected(namespace) class A {}` | Parse/compile error in v1 |
+| T-SYN-005 | RISK-001 | Accepted | `protected(namespace) class A {}` | Parses |
 | T-SYN-006 | RISK-002 | Rejected | `private class A {}` | Not accepted by this RFC |
 | T-SYN-007 | RISK-017 | Rejected | `internal class A {}` | Not accepted by this RFC |
 | T-SYN-008 | RISK-006 | Rejected | `private(namespace: \A) class B {}` | Unsupported syntax |
@@ -41,6 +42,16 @@ and must not be treated as v1 acceptance tests.
 | T-EXACT-011 | RISK-004 | `Acme\Billing` declaration | alias-importing caller in `App` | Denied |
 | T-EXACT-012 | RISK-004 | bracketed namespace | same normalized namespace | Allowed |
 | T-EXACT-013 | RISK-004 | multiple blocks same namespace | same normalized namespace | Allowed |
+
+## Protected Namespace Subtree
+
+| ID | Risk IDs | Declaration | Caller | Expected |
+| --- | --- | --- | --- | --- |
+| T-PROT-001 | RISK-006 | `Acme\Billing\protected(namespace) A` | `Acme\Billing` | Allowed |
+| T-PROT-002 | RISK-006 | same | `Acme\Billing\Domain` | Allowed |
+| T-PROT-003 | RISK-006 | same | `Acme` | Denied |
+| T-PROT-004 | RISK-006 | same | `Acme\Other` | Denied |
+| T-PROT-005 | RISK-006 | same | `Acme\BillingExtra` | Denied |
 
 ## Lexical Caller
 

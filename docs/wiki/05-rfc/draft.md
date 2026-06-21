@@ -1,6 +1,6 @@
-# PHP RFC: Exact Namespace Visibility for Class-like Declarations
+# PHP RFC: Namespace Visibility for Class-like Declarations
 
-Version: 0.2-draft
+Version: 0.3-draft
 
 Date: 2026-06-21
 
@@ -10,18 +10,23 @@ Status: Research draft
 
 ## Introduction
 
-This RFC draft proposes exact namespace visibility for named class-like
-declarations using the qualified modifier `private(namespace)`.
+This RFC draft proposes namespace visibility for named class-like declarations
+using qualified modifiers:
+
+- `private(namespace)` for the exact declaring namespace;
+- `protected(namespace)` for the declaring namespace and descendant namespaces.
 
 ```php
 namespace Acme\Billing;
 
 private(namespace) class InternalService {}
+protected(namespace) class BillingContextService {}
 ```
 
-The declaration may be used only by code whose lexical namespace is exactly the
-same namespace as the declaration. Child namespaces do not receive access in
-this RFC.
+`private(namespace)` may be used only by code whose lexical namespace is
+exactly the same namespace as the declaration. `protected(namespace)` may be
+used by that namespace and by descendant namespaces with complete namespace
+segment boundaries.
 
 This draft is not a submitted PHP RFC and is not a specification of current PHP.
 
@@ -33,24 +38,29 @@ that can load the class can instantiate it, extend it, name it in type
 declarations, or access it statically.
 
 `private(namespace)` gives libraries and applications an engine-enforced way to
-mark class-like declarations as internal to one exact namespace while preserving
-PHP's file-by-file loading model.
+mark class-like declarations as internal to one exact namespace.
+`protected(namespace)` supports bounded-context layouts that use nested
+namespaces, such as `App\Billing\Domain` and `App\Billing\Application`, without
+allowing sibling contexts such as `App\Shipping`.
 
 This is not a security sandbox. Any PHP file can declare the same namespace.
 
 ## Proposal
 
-Add `private(namespace)` as a modifier for named class-like declarations:
+Add `private(namespace)` and `protected(namespace)` as modifiers for named
+class-like declarations:
 
 ```php
 private(namespace) class A {}
+protected(namespace) class B {}
 private(namespace) interface I {}
 private(namespace) trait T {}
+protected(namespace) trait U {}
 private(namespace) enum E { case X; }
 ```
 
-The absence of `private(namespace)` preserves current public class-like
-declaration behavior.
+The absence of a namespace visibility modifier preserves current public
+class-like declaration behavior.
 
 Anonymous classes are not supported because they do not declare a stable
 top-level class-like symbol.
@@ -61,27 +71,32 @@ The modifier applies before the class-like declaration keyword:
 
 ```php
 private(namespace) final class A {}
+protected(namespace) abstract class B {}
 private(namespace) readonly class B {}
 private(namespace) interface I {}
-private(namespace) trait T {}
+protected(namespace) trait T {}
 private(namespace) enum E {}
 ```
 
-`protected(namespace)` is not part of this RFC. `private class`, `internal
-class`, `package class`, descendant modes, explicit root modes, and attributes
-are not part of this RFC.
+`private class`, `internal class`, `package class`, attributes, and explicit
+root modes are not part of this RFC.
 
 The parser must reject duplicate or conflicting class-level namespace
 visibility modifiers.
 
-## Exact Namespace Rule
+## Access Rules
 
-For a target declaration namespace `D` and an operation lexical namespace `C`,
-access is permitted if and only if:
+For a target declaration namespace `D`, an operation lexical namespace `C`, and
+normalization function `normalize()`:
 
-```text
-normalize(C) == normalize(D)
-```
+- `private(namespace)` permits access if and only if
+  `normalize(C) == normalize(D)`;
+- `protected(namespace)` permits access if and only if `normalize(C) ==
+  normalize(D)` or `normalize(C)` is a descendant namespace of `normalize(D)`
+  with a complete namespace segment boundary.
+
+For example, `App\Billing\Domain` is a descendant of `App\Billing`, but
+`App\BillingExtra` is not.
 
 The global namespace is represented as the empty string. Leading `\` is not part
 of the namespace value. Comparisons use the same case-normalized namespace
@@ -288,20 +303,19 @@ The feature is for architectural enforcement in cooperating codebases.
 
 ## Implementation Status
 
-Current local prototype status: incomplete experimental Phase B/C spike.
+Current local prototype status: incomplete experimental private/protected
+namespace visibility slice.
 
 Implemented in the spike:
 
 - parser and metadata support for `private(namespace)` and
   `protected(namespace)`;
-- Reflection metadata methods;
+- Reflection metadata methods for private and protected namespace visibility;
 - partial OPcache metadata persistence;
 - partial runtime enforcement for `new` and `ZEND_FETCH_CLASS`.
 
 Not complete for this RFC:
 
-- v1 must reject `protected(namespace)` for class-like declarations;
-- namespace metadata must be normalized for access comparison;
 - trait body operations need original trait declaration namespace metadata;
 - static access, inheritance, type resolution, `instanceof`, `catch`,
   callables, aliases, Reflection instantiation, unserialization, OPcache,
@@ -319,12 +333,14 @@ declarations and reproducible benchmarks before voting.
 
 - Plain `private class`: reserved for file or namespace-block privacy in the
   private classes/functions draft.
-- `protected(namespace)`: conflicts with inheritance terminology and the active
-  member RFC's Future Scope.
-- Descendant visibility in v1: deferred because it adds namespace hierarchy,
-  segment comparison, root/global rules, and separate syntax choices.
-- Explicit root in v1: deferred because exact namespace visibility is useful
-  without it and root validation is separate.
+- Plain `protected class`: rejected because it does not say whether the axis is
+  inheritance, namespace subtree, module, or package.
+- `private(namespace: static)`: rejected because namespace visibility is
+  lexical, while `static` suggests runtime late-static binding.
+- `private(namespace: \Root)`: deferred because broadening `private` to an
+  ancestor root is easy to misuse; `private(namespace)` should remain exact.
+- Explicit root in v1: deferred because root validation and diagnostics are
+  separate from the declaring-namespace forms.
 - `internal class`: reserved for a future module/package boundary.
 - Attribute syntax: rejected for v1 because engine enforcement still needs
   parser/compiler/runtime integration and string roots are refactor-sensitive.
@@ -335,7 +351,6 @@ declarations and reproducible benchmarks before voting.
 
 ## Future Scope
 
-- Namespace subtree visibility with syntax selected separately.
 - Explicit ancestor root.
 - Module/package-level `internal`.
 - Friend namespaces or friend classes.
@@ -348,10 +363,11 @@ declarations and reproducible benchmarks before voting.
 Primary vote, 2/3 majority:
 
 > Add `private(namespace)` exact namespace visibility for named class-like
-> declarations (`class`, `interface`, `trait`, and `enum`)?
+> declarations and `protected(namespace)` namespace-subtree visibility for
+> named class-like declarations (`class`, `interface`, `trait`, and `enum`)?
 
-Independent future votes are required for descendants, explicit roots,
-`protected(namespace)`, modules/internal, and native consistent accessibility.
+Independent future votes are required for explicit roots, modules/internal, and
+native consistent accessibility.
 
 ## References
 
@@ -368,6 +384,9 @@ Independent future votes are required for descendants, explicit roots,
 
 ## Changelog
 
+- 0.3-draft: Restored `protected(namespace)` as declaring namespace plus
+  descendants; kept `private(namespace)` exact-only; kept explicit root as
+  Future Scope.
 - 0.2-draft: Narrowed proposal to exact-only `private(namespace)` class-like
   declarations; moved descendants, explicit root, and `protected(namespace)` out
   of Proposal.

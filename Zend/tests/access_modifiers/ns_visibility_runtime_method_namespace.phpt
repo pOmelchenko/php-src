@@ -36,4 +36,4 @@ namespace {
 ?>
 --EXPECT--
 method-private
-Error: Cannot access private(namespace) class Acme\Billing\MethodPrivateService from namespace Acme\Billing\Application
+Error: Cannot access private(namespace) class Acme\Billing\MethodPrivateService from namespace acme\billing\application

@@ -3,11 +3,11 @@
 | Criterion | Status | Evidence |
 | --- | --- | --- |
 | Every risk has final status | Done | [01-risk-register.md](01-risk-register.md) |
-| Minimal first RFC selected | Done | Scope B in [02](02-minimal-scope.md) |
+| Minimal first RFC selected | Done | Revised scope in [02](02-minimal-scope.md) |
 | Syntax conflict handled | Done | [03](03-syntax-decision.md) |
 | Single access invariant | Done | [05](05-operation-coverage.md) |
 | Descendants/root defined or deferred | Done | [13](13-rfc-splitting.md) |
-| `protected(namespace)` not used for descendants in v1 | Done | [03](03-syntax-decision.md) |
+| `protected(namespace)` terminology handled | Mitigated | [03](03-syntax-decision.md), RISK-001 |
 | Types defined | Done | [09](09-public-api-and-types.md) |
 | Traits defined | Done | [06](06-lexical-scope.md) |
 | Reflection defined | Done | [08](08-reflection-autoload-aliases.md) |
@@ -16,7 +16,7 @@
 | `::class` defined | Done | [08](08-reflection-autoload-aliases.md) |
 | Global namespace defined | Done | [04](04-normative-semantics.md) |
 | Class-fetch coverage map | Done | [07](07-runtime-and-caches.md) |
-| Cache-order tests | Partial | Existing Phase C `new` cache-order test only |
+| Cache-order tests | Partial | Existing `new` cache-order test only |
 | OPcache/preload plan or results | Plan only | [07](07-runtime-and-caches.md), [14](14-implementation-gates.md) |
 | Performance evidence | Not done | [11](11-performance-evidence.md): NOT MEASURED |
 | RFC draft updated | Done after this phase's RFC patch | [../05-rfc/draft.md](../05-rfc/draft.md) |
@@ -29,6 +29,5 @@
 Ready for RFC discussion: **not yet**. The documentation is discussion-ready,
 but the implementation gates are not.
 
-Ready for RFC voting: **no**. Gate 2 through Gate 5 are not passed for the
-selected exact-only v1 model.
-
+Ready for RFC voting: **no**. Gate 3 through Gate 5 are not passed for the
+selected private/protected v1 model.

@@ -9618,7 +9618,7 @@ static void zend_compile_class_decl(znode *result, const zend_ast *ast, bool top
 			ce->ce_flags2 |= ZEND_ACC2_NAMESPACE_PROTECTED;
 		}
 		ce->namespace_visibility_namespace = FC(current_namespace)
-			? zend_string_copy(FC(current_namespace))
+			? zend_string_tolower(FC(current_namespace))
 			: zend_string_copy(ZSTR_EMPTY_ALLOC());
 	}
 	ce->info.user.filename = zend_string_copy(zend_get_compiled_filename());

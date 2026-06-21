@@ -45,20 +45,20 @@ NULL
 Acme\Billing\PrivateClass
 bool(true)
 bool(false)
-string(12) "Acme\Billing"
+string(12) "acme\billing"
 Acme\Billing\ProtectedClass
 bool(false)
 bool(true)
-string(12) "Acme\Billing"
+string(12) "acme\billing"
 Acme\Billing\PrivateInterface
 bool(true)
 bool(false)
-string(12) "Acme\Billing"
+string(12) "acme\billing"
 Acme\Billing\ProtectedTrait
 bool(false)
 bool(true)
-string(12) "Acme\Billing"
+string(12) "acme\billing"
 Acme\Billing\PrivateEnum
 bool(true)
 bool(false)
-string(12) "Acme\Billing"
+string(12) "acme\billing"

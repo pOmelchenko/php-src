@@ -23,4 +23,4 @@ namespace {
 
 ?>
 --EXPECT--
-Error: Cannot access protected(namespace) class Acme\Billing\SegmentService from namespace Acme\BillingExtra
+Error: Cannot access protected(namespace) class Acme\Billing\SegmentService from namespace acme\billingextra

@@ -48,7 +48,8 @@ visibility unless explicitly documented as privileged.
 Current direction:
 
 - `ReflectionClass` may expose name, namespace, and new metadata such as
-  `isNamespacePrivate()`/`isNamespaceProtected()` if such methods are added.
+  `isNamespacePrivate()` and `isNamespaceProtected()` if such methods are
+  added.
 - `ReflectionClass::newInstance()` and
   `ReflectionClass::newInstanceWithoutConstructor()` should enforce class-like
   visibility for the call-site namespace unless an RFC explicitly chooses a
@@ -110,4 +111,3 @@ Reasoning:
 - Including the file registers the class entry.
 - Later name use must still check the caller namespace.
 - Merely loading a declaration is not permission to use it.
-

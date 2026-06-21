@@ -1,9 +1,9 @@
 # Prototype Plan
 
-Phase 2 narrows the RFC target to exact-only `private(namespace)` on named
-class-like declarations. The existing Phase B/C spike remains useful evidence,
-but it is not the selected RFC v1 implementation because it still accepts and
-partially implements descendant `protected(namespace)`.
+Phase 2 originally narrowed toward exact-only `private(namespace)`, but
+bounded-context feedback restored the need for subtree visibility. The working
+tree now targets `private(namespace)` exact access plus `protected(namespace)`
+declaring-namespace subtree access.
 
 ## Phase A: Research Base
 
@@ -24,12 +24,13 @@ Tasks:
 
 Goal: accept syntax and store metadata, without claiming complete enforcement.
 
-Status: committed as `af9e9790f52`; incomplete for exact-only RFC v1.
+Status: committed historically as `af9e9790f52`; private/protected alignment is
+now in the working tree.
 
 Tasks:
 
 - recognize `private(namespace)`;
-- reject `protected(namespace)` for class-like declarations in RFC v1;
+- recognize `protected(namespace)`;
 - reject explicit root syntax in this phase;
 - reject namespace visibility on anonymous classes;
 - add AST/class flags for class-like namespace visibility;
@@ -49,7 +50,7 @@ Known incomplete paths in Phase B:
 
 Phase B must be documented as an incomplete experimental spike.
 
-Current implementation notes:
+Current private/protected implementation notes:
 
 - The prototype uses dedicated scanner tokens `T_PRIVATE_NAMESPACE` and
   `T_PROTECTED_NAMESPACE`.
@@ -60,18 +61,17 @@ Current implementation notes:
   `abstract protected(namespace) class B {}` are not accepted by this spike.
 - Parser-only namespace visibility bits live in `zend_ast_decl->attr` and are
   transferred into `ce_flags2` in `zend_compile_class_decl()`.
-- The declaration namespace is stored on `zend_class_entry` as an interned
+- The declaration namespace is stored on `zend_class_entry` as a normalized
   string for restricted declarations; the global namespace uses an empty string.
-- ReflectionClass exposes the metadata through prototype methods.
+- ReflectionClass exposes `isNamespacePrivate()`, `isNamespaceProtected()`, and
+  `getNamespaceVisibilityRoot()`.
 - OPcache persistence calculation/store paths include the new class-entry
   string, but runtime OPcache behavior has not been tested yet.
 
 Required before Gate 2 for RFC v1:
 
-- remove or reject class-level `protected(namespace)`;
-- store a normalized declaring namespace for checks;
 - decide whether diagnostic spelling is stored separately;
-- update tokenizer/parser PHPT expectations for exact-only syntax.
+- decide whether explicit root belongs in this RFC or a follow-up.
 
 ## Phase C: Central Access Check
 
@@ -88,7 +88,7 @@ The central function should receive:
 
 Tasks:
 
-- implement exact private comparison only for RFC v1;
+- implement exact private and protected subtree comparison for RFC v1;
 - add fast path for unrestricted classes;
 - define global namespace behavior;
 - define case-normalization behavior;
@@ -99,13 +99,14 @@ Tasks:
 Completed so far in the experimental spike:
 
 - central fast-path check for unrestricted classes;
-- exact private namespace comparison;
-- protected descendant comparison by full namespace segment, which is now
-  Future Scope and not RFC v1 behavior;
+- exact private namespace comparison using normalized namespace strings;
+- protected namespace subtree comparison with complete segment boundary;
 - stable runtime `Error` message without absolute paths;
 - checks wired into `ZEND_NEW` and `ZEND_FETCH_CLASS`;
 - targeted tests for static `new`, dynamic `new $class`, method caller
-  namespace, segment-prefix false positives, and cache order.
+  namespace, private child denial, protected child allowance,
+  parent/sibling denial, case normalization,
+  segment-prefix false positives, and cache order.
 
 Known incomplete paths for RFC v1:
 
@@ -117,11 +118,11 @@ Known incomplete paths for RFC v1:
 - inheritance, static access, types, aliases, Reflection construction, OPcache,
   preload, and JIT are not complete.
 
-Additional exact-only fixes required:
+Additional fixes required:
 
-- normalize namespace comparisons according to class-like lookup semantics;
 - preserve original trait declaration namespace for trait body operations;
-- ensure `protected(namespace)` tests are moved out of v1 or marked future.
+- decide whether diagnostics should show original namespace spelling while
+  comparison metadata remains normalized.
 
 ## Phase D: Complete Access Coverage
 
@@ -161,15 +162,13 @@ Tasks:
 - audit JIT known-class helpers;
 - verify invalidation and stale cache behavior.
 
-## Phase F: Subtree and Explicit Root Future Scope
+## Phase F: Explicit Root Future Scope
 
-Goal: evaluate descendant namespace and explicit root only after RFC v1
-semantics pass Gates 1 through 5.
+Goal: evaluate explicit roots only after the declaring-namespace private and
+protected modes pass Gates 1 through 5.
 
 Tasks:
 
-- choose descendant syntax without assuming `protected(namespace)`;
-- parse selected subtree syntax;
 - parse explicit root syntax;
 - validate root is declaration namespace or ancestor;
 - reject unrelated roots;
@@ -218,7 +217,7 @@ sapi/cli/php run-tests.php -q \
   Zend/tests/access_modifiers/ns_visibility_runtime_new_cache_order.phpt
 ```
 
-Result: passed, 11/11 PHPT tests.
+Result after private/protected alignment: passed, 12/12 targeted PHPT tests.
 
 Docker ZTS debug build:
 

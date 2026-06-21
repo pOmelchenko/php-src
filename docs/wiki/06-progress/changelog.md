@@ -59,3 +59,21 @@
 - Replaced open questions with final dispositions and implementation gates.
 - Reworked test matrix and PHPT plan for exact-only v1 and marked existing
   `protected(namespace)` tests as historical prototype/future-scope material.
+- Aligned the C prototype with exact-only v1 by removing class-level
+  `protected(namespace)` token/parser support and descendant runtime behavior.
+- Normalized declaration and caller namespace strings for exact comparison.
+- Updated Reflection/tokenizer metadata to expose only private namespace
+  visibility in v1.
+- Rewrote namespace visibility PHPTs for exact-only semantics and added
+  rejection/case-normalization coverage.
+- Verified Docker debug build and 13/13 targeted namespace visibility PHPT
+  tests for the now-superseded exact-only model.
+- Revised the selected model after bounded-context feedback: `private(namespace)`
+  remains exact-only and `protected(namespace)` again means declaring namespace
+  plus descendants for class-like declarations.
+- Restored `protected(namespace)` parser/tokenizer/Reflection/runtime support
+  in the prototype while preserving normalized namespace comparisons.
+- Updated RFC draft, risk register, syntax decision, test matrix, and PHPT plan
+  for the private/protected model.
+- Verified Docker debug build and 12/12 targeted namespace visibility PHPT
+  tests for the revised model.

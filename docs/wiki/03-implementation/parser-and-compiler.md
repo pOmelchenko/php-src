@@ -1,8 +1,9 @@
 # Parser and Compiler Notes
 
-## Minimal Parser Spike
+## Private/Protected Namespace Parser Prototype
 
-Status: implemented in the working tree as an incomplete Phase B spike.
+Status: implemented in the working tree for the current private/protected
+prototype.
 
 Target accepted syntax:
 
@@ -35,6 +36,7 @@ Target rejected syntax:
 
 ```php
 private(namespace) new class {};
+private(namespace: \Acme\Billing) class FutureOnly {}
 protected(namespace: \Acme\Billing) class FutureOnly {}
 internal class A {}
 private(namespace) private class A {}
@@ -55,9 +57,9 @@ The scanner-token approach is closer to PR #20421 and avoids broader grammar
 ambiguity. It also lets tokenizer consumers see a single feature token, though
 that requires tokenizer updates and tests.
 
-Current spike decision: dedicated scanner tokens are implemented:
+Current prototype decision: dedicated scanner tokens are implemented:
 
-- `T_PRIVATE_NAMESPACE`;
+- `T_PRIVATE_NAMESPACE`.
 - `T_PROTECTED_NAMESPACE`.
 
 ## AST Metadata
@@ -99,7 +101,7 @@ The desired eventual design may still include both orders:
 ```php
 private(namespace) final class A {}
 final private(namespace) class B {}
-protected(namespace) readonly class C {}
+protected(namespace) abstract class C {}
 abstract protected(namespace) class D {}
 ```
 
@@ -109,11 +111,10 @@ duplicate/conflicting modifier checks must produce stable errors.
 
 Invalid combinations:
 
-- both `private(namespace)` and `protected(namespace)`;
-- namespace visibility on anonymous classes;
 - namespace visibility repeated;
+- namespace visibility on anonymous classes;
 - `private(namespace)` with explicit-root syntax;
-- `protected(namespace: Root)` in first parser spike.
+- `protected(namespace)` with explicit-root syntax until root support is added.
 
 ## Declaration Namespace Metadata
 

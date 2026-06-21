@@ -1,13 +1,15 @@
 # Syntax Options
 
-The first prototype candidate is:
+The selected v1 candidate is:
 
 ```php
 private(namespace) class A {}
 protected(namespace) class B {}
 ```
 
-This is a prototype choice, not an accepted language decision.
+This is a prototype and RFC draft choice, not an accepted PHP language
+decision. `protected(namespace)` carries an explicit terminology risk because
+PHP already uses `protected` for inheritance visibility.
 
 ## Option A: Plain Modifiers
 
@@ -43,12 +45,12 @@ protected(namespace) class B {}
 | Criterion | Assessment |
 | --- | --- |
 | Current PHP visibility | Reuses existing visibility words while explicitly qualifying the axis. |
-| Inheritance-based `protected` conflict | Lower than Option A because `(namespace)` clarifies that this is not subclass access. |
+| Inheritance-based `protected` conflict | Still material; v1 must explicitly state that class-level `protected(namespace)` means namespace subtree, not inheritance. |
 | File-private draft conflict | Lower because future `private(file)` remains available. |
 | Future `private(file)` | Natural extension point. |
 | Future module system | Can coexist with `private(module)` or `internal` if a module boundary appears. |
 | Parser ambiguity | Similar to `private(set)` and `protected(set)` scanner strategy already present in current PHP. |
-| New token | Likely needs contextual tokens such as `T_PRIVATE_NAMESPACE` and `T_PROTECTED_NAMESPACE`, or scanner handling for the combined spelling. |
+| New token | For v1, `T_PRIVATE_NAMESPACE` and `T_PROTECTED_NAMESPACE` are needed. |
 | Backward compatibility | Currently invalid syntax becomes valid. No new reserved keyword. |
 | Readability | Explicit and local. |
 | Namespace refactoring | No namespace string in base form. |
@@ -143,4 +145,3 @@ protected(namespace)
 
 Keep Option D in Future Scope and reserve `internal` for a future module or
 package boundary.
-

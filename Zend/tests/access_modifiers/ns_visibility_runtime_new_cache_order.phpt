@@ -4,7 +4,7 @@ Namespace visibility checks are not skipped by class-entry caches
 <?php
 
 namespace Acme\Billing {
-    protected(namespace) class CachedService {}
+    private(namespace) class CachedService {}
 
     function newCachedAllowed(): object {
         return new CachedService();
@@ -39,7 +39,7 @@ namespace {
 ?>
 --EXPECT--
 allowed-then-denied
-Error: Cannot access protected(namespace) class Acme\Billing\CachedService from namespace Acme\Other
+Error: Cannot access private(namespace) class Acme\Billing\CachedService from namespace acme\other
 denied-then-allowed
-Error: Cannot access protected(namespace) class Acme\Billing\CachedService from namespace Acme\Other
+Error: Cannot access private(namespace) class Acme\Billing\CachedService from namespace acme\other
 allowed after denied

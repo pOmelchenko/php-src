@@ -1,12 +1,11 @@
 # PHPT Plan
 
-This plan targets exact-only RFC v1. Existing Phase B/C tests remain historical
-prototype evidence; tests involving `protected(namespace)` must be moved to
-Future Scope or rewritten as v1 rejection tests.
+This plan targets revised RFC v1: `private(namespace)` exact access and
+`protected(namespace)` subtree access.
 
-## Implemented Historical Tests
+## Implemented Prototype Tests
 
-Implemented files from the Phase B/C spike:
+Implemented files in the current private/protected prototype:
 
 - `Zend/tests/access_modifiers/ns_visibility_class_like_syntax.phpt`
 - `Zend/tests/access_modifiers/ns_visibility_class_like_metadata.phpt`
@@ -14,25 +13,26 @@ Implemented files from the Phase B/C spike:
 - `Zend/tests/access_modifiers/ns_visibility_duplicate_modifier_error.phpt`
 - `Zend/tests/access_modifiers/ns_visibility_explicit_root_error.phpt`
 - `ext/tokenizer/tests/ns_visibility_tokens.phpt`
+- `Zend/tests/access_modifiers/ns_visibility_runtime_case_insensitive.phpt`
 - `Zend/tests/access_modifiers/ns_visibility_runtime_new_static.phpt`
 - `Zend/tests/access_modifiers/ns_visibility_runtime_new_dynamic.phpt`
 - `Zend/tests/access_modifiers/ns_visibility_runtime_method_namespace.phpt`
 - `Zend/tests/access_modifiers/ns_visibility_runtime_new_cache_order.phpt`
 - `Zend/tests/access_modifiers/ns_visibility_runtime_segment_prefix.phpt`
 
-Result on 2026-06-21 in the Docker debug build: 11/11 passed. Docker ZTS debug
-build also passed. These tests were not rerun during the documentation-only
-Phase 2 update.
+Result on 2026-06-21 in the Docker debug build after private/protected
+alignment: 12/12 passed. The Docker ZTS debug build was not rerun after this
+alignment.
 
 ## Required v1 Parser Tests
 
 | ID | Risk IDs | File | Status |
 | --- | --- | --- | --- |
 | PHPT-SYN-001 | RISK-002 | `ns_visibility_private_namespace_class_like.phpt` | Planned |
-| PHPT-SYN-002 | RISK-001 | `ns_visibility_protected_namespace_rejected_v1.phpt` | Planned |
+| PHPT-SYN-002 | RISK-001 | `ns_visibility_class_like_syntax.phpt` | Existing |
 | PHPT-SYN-003 | RISK-002 | `ns_visibility_plain_private_class_not_v1.phpt` | Planned |
 | PHPT-SYN-004 | RISK-017 | `ns_visibility_internal_class_not_v1.phpt` | Planned |
-| PHPT-SYN-005 | RISK-006 | `ns_visibility_explicit_root_not_v1.phpt` | Planned |
+| PHPT-SYN-005 | RISK-006 | `ns_visibility_explicit_root_error.phpt` | Existing |
 | PHPT-SYN-006 | RISK-003 | `ns_visibility_anonymous_class_rejected.phpt` | Existing/prototype |
 
 ## Required Exact Namespace Tests
@@ -41,16 +41,25 @@ Phase 2 update.
 | --- | --- | --- | --- |
 | PHPT-EXACT-001 | RISK-004 | `ns_visibility_same_namespace_same_file.phpt` | Planned |
 | PHPT-EXACT-002 | RISK-004 | `ns_visibility_same_namespace_other_file.phpt` | Planned |
-| PHPT-EXACT-003 | RISK-006 | `ns_visibility_child_namespace_denied.phpt` | Planned |
-| PHPT-EXACT-004 | RISK-006 | `ns_visibility_parent_namespace_denied.phpt` | Planned |
-| PHPT-EXACT-005 | RISK-006 | `ns_visibility_sibling_namespace_denied.phpt` | Planned |
-| PHPT-EXACT-006 | RISK-006 | `ns_visibility_prefix_collision_denied.phpt` | Existing/prototype for protected; rewrite for v1 private |
+| PHPT-EXACT-003 | RISK-006 | `ns_visibility_runtime_new_static.phpt` | Existing partial |
+| PHPT-EXACT-004 | RISK-006 | `ns_visibility_runtime_new_static.phpt` | Existing partial |
+| PHPT-EXACT-005 | RISK-006 | `ns_visibility_runtime_new_static.phpt` | Existing partial |
+| PHPT-EXACT-006 | RISK-006 | `ns_visibility_runtime_segment_prefix.phpt` | Existing |
 | PHPT-EXACT-007 | RISK-013 | `ns_visibility_global_global.phpt` | Planned |
 | PHPT-EXACT-008 | RISK-013 | `ns_visibility_global_named_denied.phpt` | Planned |
 | PHPT-EXACT-009 | RISK-013 | `ns_visibility_named_global_denied.phpt` | Planned |
-| PHPT-EXACT-010 | RISK-004 | `ns_visibility_namespace_case_normalized.phpt` | Planned |
+| PHPT-EXACT-010 | RISK-004 | `ns_visibility_runtime_case_insensitive.phpt` | Existing |
 | PHPT-EXACT-011 | RISK-004 | `ns_visibility_bracketed_namespace.phpt` | Planned |
 | PHPT-EXACT-012 | RISK-004 | `ns_visibility_multiple_namespace_blocks.phpt` | Planned |
+
+## Required Protected Subtree Tests
+
+| ID | Risk IDs | File | Status |
+| --- | --- | --- | --- |
+| PHPT-PROT-001 | RISK-006 | `ns_visibility_runtime_new_static.phpt` | Existing partial |
+| PHPT-PROT-002 | RISK-006 | `ns_visibility_runtime_new_dynamic.phpt` | Existing partial |
+| PHPT-PROT-003 | RISK-006 | `ns_visibility_runtime_segment_prefix.phpt` | Existing |
+| PHPT-PROT-004 | RISK-006 | `ns_visibility_protected_explicit_root_future.phpt` | Planned if root stays future |
 
 ## Required Lexical Tests
 
@@ -129,7 +138,7 @@ Phase 2 update.
 
 ## Commands and Current Results
 
-Last executed before this documentation update:
+Last executed after private/protected alignment:
 
 ```sh
 sapi/cli/php run-tests.php -q \
@@ -138,6 +147,7 @@ sapi/cli/php run-tests.php -q \
   Zend/tests/access_modifiers/ns_visibility_duplicate_modifier_error.phpt \
   Zend/tests/access_modifiers/ns_visibility_anonymous_class_error.phpt \
   Zend/tests/access_modifiers/ns_visibility_explicit_root_error.phpt \
+  Zend/tests/access_modifiers/ns_visibility_runtime_case_insensitive.phpt \
   Zend/tests/access_modifiers/ns_visibility_runtime_new_static.phpt \
   Zend/tests/access_modifiers/ns_visibility_runtime_new_dynamic.phpt \
   Zend/tests/access_modifiers/ns_visibility_runtime_method_namespace.phpt \
@@ -146,16 +156,16 @@ sapi/cli/php run-tests.php -q \
   ext/tokenizer/tests/ns_visibility_tokens.phpt
 ```
 
-Historical result: 11/11 passed.
+Current result: 12/12 passed in the Docker debug build.
 
 Not run in Phase 2:
 
-- new v1 exact-only tests;
+- remaining v1 tests outside the implemented prototype slice;
 - full `make test`;
 - OPcache on/off tests;
 - preload tests;
 - JIT tests;
 - benchmark tests.
 
-Reason: this phase changed documentation and RFC scope only; the C prototype is
-incomplete for the selected exact-only v1 model.
+Reason: this implementation pass covered parser/tokenizer metadata and a narrow
+runtime `new`/class-fetch slice, not the full operation matrix.

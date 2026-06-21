@@ -2,17 +2,19 @@
 
 This directory closes the known gaps from the first research pass for PHP
 class-level namespace visibility. It intentionally narrows the first RFC to
-exact namespace class-like visibility:
+class-like namespace visibility with two declaring-namespace modes:
 
 ```php
 namespace Acme\Billing;
 
-private(namespace) class InternalService {}
+private(namespace) class ExactOnly {}
+protected(namespace) class BillingSubtree {}
 ```
 
-The proposal in this phase does not include namespace descendants, explicit
-roots, `protected(namespace)`, `private class`, `internal`, modules, friend
-namespaces, or native consistent accessibility.
+`private(namespace)` is exact-only. `protected(namespace)` allows the declaring
+namespace and descendant namespaces. The proposal in this phase does not include
+explicit roots, `private class`, `internal`, modules, friend namespaces, or
+native consistent accessibility.
 
 ## Repository Snapshot
 
@@ -32,7 +34,7 @@ Draft RFCs and mailing-list posts are treated as prior art only.
 | --- | --- | --- | --- | --- | --- |
 | <https://wiki.php.net/rfc/namespace_visibility> | Under Discussion, v1.2 | RFC date 2025-11-10; last modified 2025-11-10 18:48 by withinboredom | Member/property `private(namespace)` is exact lexical namespace; class-level visibility is Future Scope; `protected(namespace)` is Future Scope for namespace plus inheritance semantics | Reflection/member bypass details do not decide class-name visibility | Reusing `protected(namespace)` for descendants would conflict with its Future Scope meaning |
 | <https://github.com/php/php-src/pull/20421> | Open PR, not merged | Created 2025-11-07; updated 2026-03-14; head `1618f8b0fa0a774627aa8bd1d76749cb1142000c` | Adds member-level namespace visibility, `op_array->namespace_name`, eval/closure/opcache fixes, callable checks | It implements methods/properties, not class-like names | Trait handling uses receiver/using class namespace; class-level trait-body semantics need a separate decision |
-| <https://wiki.php.net/rfc/namespace-visibility> | Draft | RFC date 2018-07-18; last modified 2025-04-03 13:08 by 127.0.0.1 | Class/interface/trait top-level visibility; already obtained objects remain usable; Reflection can inspect | Uses plain `private`/`protected`; implementation section is unspecified | `protected` means shared higher-level namespace, not this RFC's exact-only v1 |
+| <https://wiki.php.net/rfc/namespace-visibility> | Draft | RFC date 2018-07-18; last modified 2025-04-03 13:08 by 127.0.0.1 | Class/interface/trait top-level visibility; already obtained objects remain usable; Reflection can inspect | Uses plain `private`/`protected`; implementation section is unspecified | `protected` prior art is relevant but lacks qualified syntax |
 | <https://wiki.php.net/rfc/private-classes-and-functions> | Draft | RFC date 2024-12-11; last modified 2025-04-03 13:08 by 127.0.0.1 | Plain `private class` / `private function` are file or namespace-block private via name mangling; namespace runtime visibility is Future Scope | Compile-time mangling deliberately permits alias escape | Plain `private class` is occupied by a different model |
 | <https://wiki.php.net/rfc/encapsulation> | Draft | RFC date 2015-02-19; last modified 2025-04-03 13:08 by 127.0.0.1 | Private class/interface/trait exact namespace access; no object membrane; types remained usable outside | Plain `private`; PHP 7.0 target; old Reflection API shape | Broader type allowance is weaker than symbol-visibility v1 |
 | <https://externals.io/message/127466> | Mailing-list discussion | Externals archive has no edit timestamp; thread visible as 2025 discussion; accessed 2026-06-21 | Namespace-as-module and module/package boundary objections; explicit prefix roots discussed | Not an RFC | Reinforces that namespace is not ownership or security |
@@ -45,9 +47,9 @@ Draft RFCs and mailing-list posts are treated as prior art only.
 
 | Status | Count |
 | --- | ---: |
-| RESOLVED | 10 |
-| MITIGATED | 3 |
-| DEFERRED | 2 |
+| RESOLVED | 9 |
+| MITIGATED | 5 |
+| DEFERRED | 1 |
 | ACCEPTED | 2 |
 | BLOCKED | 0 |
 

@@ -49,10 +49,11 @@ class-entry metadata, Reflection metadata access, tokenizer support, OPcache
 metadata persistence plumbing, and parser/metadata PHPT tests. It does not
 implement runtime access enforcement.
 
-Phase 2 risk closure narrows the RFC target to exact-only `private(namespace)`
-on named class-like declarations. The current C prototype is useful spike
-evidence, but it is incomplete for that target because it still accepts and
-partially implements `protected(namespace)` descendant semantics.
+Phase 2 risk closure originally narrowed the RFC target to exact-only
+`private(namespace)`, but bounded-context feedback restored
+`protected(namespace)` as namespace-subtree visibility. The current C prototype
+is useful spike evidence, but it is incomplete beyond parser/metadata and a
+narrow `new`/class-fetch runtime slice.
 
 ## Local Build Environment
 
@@ -121,7 +122,7 @@ Current Phase C working tree status:
 | Semantics | [decisions.md](02-semantics/decisions.md) | Decision log |
 | Risk closure | [README.md](07-risk-closure/README.md) | Phase 2 closure index |
 | Risk closure | [01-risk-register.md](07-risk-closure/01-risk-register.md) | Final risk statuses |
-| Risk closure | [04-normative-semantics.md](07-risk-closure/04-normative-semantics.md) | Normative exact-only draft |
+| Risk closure | [04-normative-semantics.md](07-risk-closure/04-normative-semantics.md) | Normative private/protected draft |
 | Risk closure | [14-implementation-gates.md](07-risk-closure/14-implementation-gates.md) | Gate status |
 | Implementation | [php-src-map.md](03-implementation/php-src-map.md) | Source map |
 | Implementation | [parser-and-compiler.md](03-implementation/parser-and-compiler.md) | Implementation notes |
@@ -141,24 +142,25 @@ Current Phase C working tree status:
 
 ## Current Prototype Status
 
-Status: incomplete experimental Phase C spike; not aligned with selected
-exact-only RFC v1.
+Status: incomplete experimental private/protected RFC v1 slice. The
+parser/tokenizer surface is aligned with the revised selected model, and
+runtime enforcement currently covers a narrow `new`/class-fetch path.
 
 Implemented in the working tree:
 
 - scanner tokens `T_PRIVATE_NAMESPACE` and `T_PROTECTED_NAMESPACE`;
-- parser support for `private(namespace)` and `protected(namespace)` as a
-  prefix before named class-like declarations;
+- parser support for `private(namespace)` and `protected(namespace)` as
+  prefixes before named class-like declarations;
 - supported declaration kinds: named class, interface, trait, and enum;
 - anonymous classes rejected by grammar;
-- declaration namespace stored on `zend_class_entry` for restricted
+- normalized declaration namespace stored on `zend_class_entry` for restricted
   class-like declarations;
 - new ReflectionClass metadata methods:
   `isNamespacePrivate()`, `isNamespaceProtected()`, and
   `getNamespaceVisibilityRoot()`;
 - tokenizer metadata for the new tokens;
 - OPcache persistence size/store updates for the new class-entry string;
-- central runtime check for exact private and descendant protected namespace
+- central runtime check for exact private and protected subtree namespace
   visibility;
 - minimal runtime enforcement in `ZEND_NEW` and `ZEND_FETCH_CLASS`.
 
@@ -173,11 +175,10 @@ Known limitations:
   construction, preload, OPcache runtime behavior, and JIT paths are not yet
   enforced;
 - current grammar accepts the namespace visibility modifier only before normal
-  class modifiers, for example `protected(namespace) abstract class A {}`;
+  class modifiers, for example `private(namespace) final class A {}` or
+  `protected(namespace) abstract class B {}`;
 - explicit root syntax remains Future Scope.
-- selected RFC v1 must reject class-level `protected(namespace)`;
-- namespace case normalization and trait body lexical namespace are not yet
-  implemented for the selected model.
+- trait body lexical namespace is not yet implemented for the selected model.
 
 ## Source Register
 
@@ -233,7 +234,7 @@ docker compose -f docker/dev/compose.yml run --rm php-src-dev bash -lc \
    make -j"$(nproc)"'
 ```
 
-Result: passed on 2026-06-21 in `/tmp/php-src-build` inside the dev container.
+Result: passed on 2026-06-21 in the mounted Docker checkout.
 
 Targeted PHPT run:
 
@@ -244,6 +245,8 @@ sapi/cli/php run-tests.php -q \
   Zend/tests/access_modifiers/ns_visibility_duplicate_modifier_error.phpt \
   Zend/tests/access_modifiers/ns_visibility_anonymous_class_error.phpt \
   Zend/tests/access_modifiers/ns_visibility_explicit_root_error.phpt \
+  Zend/tests/access_modifiers/ns_visibility_protected_namespace_error.phpt \
+  Zend/tests/access_modifiers/ns_visibility_runtime_case_insensitive.phpt \
   Zend/tests/access_modifiers/ns_visibility_runtime_new_static.phpt \
   Zend/tests/access_modifiers/ns_visibility_runtime_new_dynamic.phpt \
   Zend/tests/access_modifiers/ns_visibility_runtime_method_namespace.phpt \
@@ -252,11 +255,8 @@ sapi/cli/php run-tests.php -q \
   ext/tokenizer/tests/ns_visibility_tokens.phpt
 ```
 
-Result: 11/11 passed.
-
-Phase 2 did not rerun PHPT tests because it changed documentation and RFC scope
-only. New exact-only v1 tests are planned in
-[phpt-plan.md](04-tests/phpt-plan.md).
+Result after private/protected alignment: 12/12 passed in the Docker debug
+build. Remaining v1 tests are planned in [phpt-plan.md](04-tests/phpt-plan.md).
 
 Docker ZTS debug build:
 

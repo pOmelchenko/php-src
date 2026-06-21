@@ -33,10 +33,10 @@
 - The most practical first boundary is name use, not runtime membrane.
 - Lexical caller namespace is essential.
 - `private(namespace)` exact match is straightforward.
-- `protected(namespace)` must not be used for descendant access in RFC v1
-  because it conflicts with the active member RFC's Future Scope for namespace
-  plus inheritance visibility.
-- Namespace descendants and explicit root are useful but deferred.
+- `protected(namespace)` is now the selected class-level descendant access
+  spelling, with an explicit terminology caveat because the active member RFC
+  uses the same spelling differently in Future Scope.
+- Explicit root is useful but deferred.
 - `::class`, Reflection construction, existence probes, aliases, autoload side
   effects, global namespace, and public API exposure now have explicit v1
   dispositions.
@@ -73,21 +73,22 @@ Most important design constraint:
 - Class entry cache hits must not skip access checks for later callers from
   disallowed namespaces.
 
-Phase B prototype findings:
+Phase B prototype findings, updated after private/protected alignment:
 
 - `private(namespace)` and `protected(namespace)` can be tokenized as dedicated
   scanner tokens, matching the `private(set)`/`protected(set)` precedent.
 - A conflict-free grammar spike is simplest when namespace visibility is a
   declaration prefix before normal class modifiers:
-  `protected(namespace) abstract class A {}`.
-- Allowing both `abstract protected(namespace) class A {}` and
-  `protected(namespace) abstract class A {}` is possible future work, but it
+  `private(namespace) final class A {}` and
+  `protected(namespace) abstract class B {}`.
+- Allowing both `final private(namespace) class A {}` and
+  `private(namespace) final class A {}` is possible future work, but it
   increases grammar and duplicate-modifier handling.
 - The class declaration AST `attr` field is a better Phase B carrier than
   temporary `ce_flags` bits, because ordinary class flags have very little free
   space and bit 30 is already used by `ZEND_ACC_USE_GUARDS`.
-- The spike maps `zend_ast_decl->attr` namespace visibility bits into
-  `ce_flags2` during `zend_compile_class_decl()`.
+- The prototype maps private/protected namespace visibility bits from
+  `zend_ast_decl->attr` into `ce_flags2` during `zend_compile_class_decl()`.
 - Metadata belongs on `zend_class_entry`, so `class_alias()` cannot be allowed
   to widen visibility later.
 - Reflection metadata is useful for tests, but it is not an enforcement
@@ -110,6 +111,10 @@ part.
   `ZEND_FETCH_CLASS`; the first cache-order tests pass.
 - The fast path for unrestricted classes keeps the new check cheap for normal
   code.
+- The current comparison normalizes declaration and caller namespaces according
+  to class-like lookup case behavior.
+- `protected(namespace)` is now a parser rejection test, not an accepted
+  descendant mode.
 - Deriving caller namespace from named function/method metadata is enough for
   the first construction tests, but it is not a complete lexical namespace
   model.
@@ -120,14 +125,14 @@ part.
 
 ## Phase 2 Risk-Closure Findings
 
-- The selected first RFC is Scope B: exact-only `private(namespace)` for named
-  class-like declarations.
-- The risk register contains 10 RESOLVED, 3 MITIGATED, 2 DEFERRED,
+- The selected first RFC is now class-like `private(namespace)` exact access
+  plus `protected(namespace)` namespace-subtree access.
+- The risk register contains 9 RESOLVED, 5 MITIGATED, 1 DEFERRED,
   2 ACCEPTED, and 0 BLOCKED risks.
 - Performance evidence is NOT MEASURED.
-- The current C prototype is incomplete for the selected v1 because it accepts
-  `protected(namespace)`, implements descendant semantics, stores namespace
-  spelling without normalized comparison metadata, and covers only a small
-  runtime slice.
-- Gate 1 is closed at the documentation level. Gates 2 through 5 are not passed
-  for the selected v1 implementation.
+- The current C prototype accepts class-level `private(namespace)` and
+  `protected(namespace)`, normalizes namespace comparison metadata, and covers
+  only a small runtime slice.
+- Gate 1 is reopened at the documentation level for the protected terminology
+  caveat. Gate 2 passes for the parser/metadata slice. Gates 3 through 5 are
+  not passed for the selected v1 implementation.

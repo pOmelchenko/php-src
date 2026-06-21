@@ -9,6 +9,12 @@ permitted if and only if the normalized lexical namespace of the operation is
 equal to the normalized declaring namespace of the target class-like
 declaration.
 
+For a class-like declaration declared with `protected(namespace)`, access is
+permitted if the normalized lexical namespace of the operation is equal to the
+normalized declaring namespace of the target class-like declaration, or if the
+operation namespace is a descendant namespace of the declaration namespace with
+a complete namespace segment boundary.
+
 If access is not permitted, the operation fails when it resolves the target
 `zend_class_entry`, unless it is rejected earlier by syntax or declaration
 metadata.
@@ -67,7 +73,7 @@ declarations, static access, or equivalent class-name operations.
 | Caller lexical namespace | Target declaration namespace | Result | Reason |
 | --- | --- | --- | --- |
 | `Acme\Billing` | `Acme\Billing` | Allowed | Exact normalized match |
-| `Acme\Billing\Application` | `Acme\Billing` | Denied | Child namespace is a different namespace in v1 |
+| `Acme\Billing\Application` | `Acme\Billing` | Denied for `private(namespace)`, allowed for `protected(namespace)` | Child namespace is different for private but inside protected subtree |
 | `Acme` | `Acme\Billing` | Denied | Parent namespace is different |
 | `Acme\Orders` | `Acme\Billing` | Denied | Sibling namespace is different |
 | `Acme\BillingExtra` | `Acme\Billing` | Denied | Same textual prefix is not equality |
@@ -88,4 +94,3 @@ The normative timing principle is:
 Runtime denials throw `Error`. Compile-time or class-linking denials may use
 existing fatal compile/link paths if the engine resolves the class entry at
 that phase.
-

@@ -17,45 +17,62 @@ Cons:
 
 Status: rejected for RFC v1.
 
-## `protected(namespace)`
+## `protected(namespace)` Terminology
 
 Pros:
 
 - Familiar modifier word.
 - Could be read as broader than `private(namespace)`.
+- Matches the bounded-context subtree use case.
 
 Cons:
 
 - In PHP, `protected` means inheritance-based access.
 - The active member namespace visibility RFC lists `protected(namespace)` as
   Future Scope for combining namespace visibility with inheritance visibility.
-- Descendant namespace access is a different hierarchy and needs separate
-  syntax.
+- Descendant namespace access is a different hierarchy and must be described
+  explicitly.
 
-Status: rejected for RFC v1 and reserved for a separate RFC/vote.
+Status: accepted for the current class-level draft with explicit terminology
+caveat. If Internals rejects the spelling, a fallback subtree syntax must be
+chosen before voting.
 
-## Descendant or Root Syntax
+## Explicit Root Syntax
 
 Examples:
 
 ```php
-private(namespace: descendants) class A {}
-private(namespace: \Acme\Billing) class B {}
+protected(namespace: \Acme\Billing) class B {}
 ```
 
 Pros:
 
 - Useful for namespace subtrees.
-- Can avoid overloading `protected`.
+- Decouples declaration namespace from bounded-context root.
 
 Cons:
 
-- Requires segment-aware hierarchy semantics.
 - Requires global namespace root rules.
 - Requires root validation and refactoring policy.
 - Increases implementation and voting scope.
 
 Status: Future Scope.
+
+## `private(namespace: static)`
+
+Pros:
+
+- Makes the implicit current namespace default look explicit.
+- Leaves room for later explicit roots.
+
+Cons:
+
+- `static` in PHP suggests runtime late-static binding or class context.
+- Namespace visibility is lexical and does not depend on `$this`, called class,
+  or runtime caller.
+- `private(namespace)` already means the current declaration namespace.
+
+Status: rejected for RFC v1.
 
 ## `internal class`
 

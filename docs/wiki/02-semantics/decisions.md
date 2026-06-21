@@ -3,12 +3,14 @@
 Decisions marked `accepted-for-prototype` are implementation-direction choices
 for a possible local spike, not accepted PHP language decisions.
 
-Decisions DEC-020 and later are the Phase 2 exact-only RFC v1 decisions. They
-supersede earlier prototype decisions where they conflict.
+Decisions DEC-020 and later are the Phase 2 RFC v1 decisions. They supersede
+earlier prototype decisions where they conflict. DEC-020/022/035 were revised
+after bounded-context feedback showed that exact-only visibility does not cover
+layered namespace trees.
 
 ## DEC-001: Plain `private`/`protected` or Qualified Modifiers
 
-Status: accepted-for-prototype
+Status: superseded-by-DEC-021-and-DEC-022
 
 Context:
 Top-level class-like visibility needs syntax that does not confuse member
@@ -22,7 +24,9 @@ Options:
 - built-in attribute.
 
 Decision:
-Use `private(namespace)` and `protected(namespace)` for the first prototype.
+The first prototype used `private(namespace)` and `protected(namespace)`.
+Current RFC v1 keeps only `private(namespace)`; `protected(namespace)` is not
+used for descendant visibility.
 
 Consequences:
 The syntax is explicit, keeps `private(file)` available, and avoids adding
@@ -34,7 +38,7 @@ uses `private(namespace)` for members/properties.
 
 ## DEC-002: Exact Private Semantics
 
-Status: accepted-for-prototype
+Status: superseded-by-DEC-035
 
 Context:
 `private(namespace)` must define whether child namespaces have access.
@@ -71,7 +75,8 @@ Options:
 - inheritance/subclass model.
 
 Decision:
-Use declaration namespace plus descendant namespaces by complete segments.
+The early prototype used declaration namespace plus descendant namespaces by
+complete segments. Current RFC v1 defers descendant visibility.
 
 Consequences:
 `Acme\Billing\Application` is allowed; `Acme\BillingExtra` is denied.
@@ -382,9 +387,9 @@ declaration prefix shared by class, interface, trait, and enum productions.
 
 Options:
 
-- accept only prefix order, e.g. `protected(namespace) abstract class A {}`;
+- accept only prefix order, e.g. `private(namespace) abstract class A {}`;
 - accept both prefix and mixed order, e.g. also
-  `abstract protected(namespace) class A {}`;
+  `abstract private(namespace) class A {}`;
 - reject class modifiers after namespace visibility until a fuller grammar
   design exists.
 
@@ -403,47 +408,64 @@ The Docker-generated parser reports zero conflicts with the prefix-only
 grammar. Earlier broad optional modifier productions introduced reduce/reduce
 conflicts.
 
-## DEC-020: First RFC exact namespace only
+## DEC-020: First RFC includes exact private and protected namespace subtree
 
 Status: accepted-for-rfc-v1
 Risk IDs: RISK-003, RISK-006
 Context: The original research model included exact namespace, descendants, and explicit roots.
 Options: Exact only; exact plus descendants; exact plus descendants plus explicit root.
-Decision: The first RFC includes exact namespace visibility only.
-Normative rule: Access is permitted only when the normalized lexical namespace of the operation equals the normalized declaring namespace of the target class-like declaration.
-Consequences: Child, parent, sibling, and prefix-similar namespaces are denied.
-Evidence: Exact-only matches the current member RFC's `private(namespace)` direction and avoids new namespace hierarchy semantics.
-Tests: `T-EXACT-SAME`, `T-EXACT-CHILD-DENIED`, `T-EXACT-PARENT-DENIED`, `T-EXACT-SIBLING-DENIED`, `T-EXACT-PREFIX-DENIED`.
-Residual risk: Some projects want subtree visibility.
-Revisit condition: RFC B for namespace subtree visibility.
+Decision: The first RFC includes exact `private(namespace)` and subtree
+`protected(namespace)`.
+Normative rule: `private(namespace)` requires exact normalized namespace
+equality. `protected(namespace)` allows exact equality or a descendant namespace
+with a complete segment boundary.
+Consequences: `App\Billing\Domain` can access `protected(namespace)`
+declarations in `App\Billing`, but cannot access `private(namespace)`
+declarations there. Parent, sibling, and prefix-similar namespaces are denied.
+Evidence: Exact-only is too narrow for bounded-context layouts with layered
+namespaces.
+Tests: `T-EXACT-CHILD-DENIED`, `T-PROT-CHILD-ALLOWED`,
+`T-PROT-SIBLING-DENIED`, `T-PROT-PREFIX-DENIED`.
+Residual risk: `protected(namespace)` has terminology risk with inheritance.
+Revisit condition: Internals rejects class-level `protected(namespace)` as a
+namespace-subtree spelling.
 
 ## DEC-021: Qualified class modifier syntax
 
 Status: accepted-for-rfc-v1
 Risk IDs: RISK-001, RISK-002
-Context: Plain `private class` conflicts with private classes/functions; `protected(namespace)` conflicts with inheritance terminology.
-Options: `private class`; `private(namespace) class`; attributes; `internal`.
-Decision: Use `private(namespace)` for RFC v1.
-Normative rule: `private(namespace)` may modify named class-like declarations supported by RFC v1.
+Context: Plain `private class` conflicts with private classes/functions;
+bounded contexts need a broader namespace-subtree spelling.
+Options: `private class`; `private(namespace) class`; `protected(namespace)
+class`; attributes; `internal`.
+Decision: Use `private(namespace)` and `protected(namespace)` for RFC v1.
+Normative rule: `private(namespace)` and `protected(namespace)` may modify named
+class-like declarations supported by RFC v1.
 Consequences: `private(file)` and `private(module)` remain available for future RFCs.
 Evidence: Active member RFC uses `private(namespace)` for exact namespace member access.
-Tests: `T-SYN-PRIVATE-NAMESPACE-ACCEPT`, `T-SYN-PRIVATE-CLASS-NOT-V1`.
-Residual risk: Parser/tooling must learn qualified modifier syntax.
+Tests: `T-SYN-PRIVATE-NAMESPACE-ACCEPT`, `T-SYN-PROTECTED-NAMESPACE-ACCEPT`,
+`T-SYN-PRIVATE-CLASS-NOT-V1`.
+Residual risk: Parser/tooling must learn qualified modifier syntax and the
+class-level protected meaning.
 Revisit condition: Member RFC syntax changes before discussion.
 
-## DEC-022: Do not use protected(namespace) for descendants in v1
+## DEC-022: Use protected(namespace) for class-level descendants with caveat
 
 Status: accepted-for-rfc-v1
 Risk IDs: RISK-001, RISK-006
 Context: `protected(namespace)` may be read as inheritance protected plus namespace access.
 Options: Use for descendants; reserve for inheritance combination; reject in v1.
-Decision: Reject `protected(namespace)` for class-like declarations in RFC v1.
-Normative rule: A class-like declaration using `protected(namespace)` is not valid under RFC v1.
-Consequences: Descendant visibility needs a separate syntax and vote.
+Decision: Use `protected(namespace)` for class-level namespace descendants in
+RFC v1, but document the conflict explicitly.
+Normative rule: `protected(namespace)` on a class-like declaration allows the
+declaring namespace and descendant namespaces.
+Consequences: The RFC must explain that class-level `protected(namespace)` is
+not inheritance visibility and may need a separate vote question.
 Evidence: Current member RFC lists `protected(namespace)` Future Scope as namespace plus inheritance, not descendants.
-Tests: `T-SYN-PROTECTED-NOT-V1`.
-Residual risk: Existing local spike accepts it and must be changed before RFC readiness.
-Revisit condition: RFC B syntax bake-off.
+Tests: `T-SYN-PROTECTED-NAMESPACE-ACCEPT`, `T-PROT-CHILD-ALLOWED`.
+Residual risk: Internals may object to overloading `protected`.
+Revisit condition: If the terminology objection dominates, switch to a
+non-`protected` subtree spelling before discussion.
 
 ## DEC-023: Class-name visibility versus object membrane
 
@@ -479,13 +501,18 @@ Status: accepted-for-rfc-v1
 Risk IDs: RISK-013
 Context: Empty namespace root is ambiguous for descendants.
 Options: Reject global; exact global; public by accident.
-Decision: Global namespace is a valid exact namespace represented by empty string.
-Normative rule: Global callers can access global `private(namespace)` declarations; named callers cannot.
-Consequences: No accidental descendant-from-empty-root behavior in v1.
-Evidence: Exact-only semantics remove subtree ambiguity.
+Decision: Global namespace is represented by empty string. It is valid for exact
+private access; protected descendant access from the empty root is not granted
+in v1.
+Normative rule: Global callers can access global `private(namespace)` and
+`protected(namespace)` declarations; named callers cannot access them merely by
+being non-empty namespaces.
+Consequences: No accidental "all namespaces are descendants of global" behavior.
+Evidence: The runtime protected check requires a non-empty declaration namespace
+before allowing descendant access.
 Tests: `T-GLOBAL-GLOBAL`, `T-GLOBAL-NAMED`, `T-NAMED-GLOBAL`.
-Residual risk: Future subtree RFC must define empty root separately.
-Revisit condition: RFC B includes descendants from global.
+Residual risk: Explicit global-root syntax must define this separately.
+Revisit condition: RFC C includes explicit roots from global.
 
 ## DEC-026: Trait composition
 
@@ -613,19 +640,25 @@ Tests: `T-CONSISTENT-ACCESSIBILITY-NOT-NATIVE`.
 Residual risk: Public APIs can expose names consumers cannot use.
 Revisit condition: Separate RFC with type graph rules.
 
-## DEC-035: Descendants deferred
+## DEC-035: Descendants included through protected(namespace)
 
-Status: deferred-from-rfc-v1
+Status: accepted-for-rfc-v1
 Risk IDs: RISK-001, RISK-006
 Context: Descendant namespaces are useful but introduce hierarchy semantics.
 Options: Include; defer; reject.
-Decision: Defer descendant visibility.
-Normative rule: Child namespaces are denied for `private(namespace)` in v1.
-Consequences: No `protected(namespace)` descendant model in v1.
-Evidence: Segment/root/global decisions are independent.
-Tests: `T-EXACT-CHILD-DENIED`.
-Residual risk: Reduced convenience for namespace subtrees.
-Revisit condition: RFC B.
+Decision: Include descendant visibility as `protected(namespace)`.
+Normative rule: Child namespaces are denied for `private(namespace)` and allowed
+for `protected(namespace)` when the child relation is segment-aware.
+Consequences: Bounded-context trees are supported in v1; explicit roots remain
+separate.
+Evidence: Exact-only visibility forces all context internals into one namespace
+level and does not satisfy the motivating architecture.
+Tests: `T-EXACT-CHILD-DENIED`, `T-PROT-CHILD-ALLOWED`,
+`T-PROT-PREFIX-DENIED`.
+Residual risk: Namespace hierarchy semantics are new for PHP class-like
+visibility.
+Revisit condition: Implementation cannot enforce segment-aware descendant
+checks consistently.
 
 ## DEC-036: Explicit root deferred
 
@@ -634,7 +667,8 @@ Risk IDs: RISK-006
 Context: Explicit ancestor root can broaden access beyond declaration namespace.
 Options: Include root syntax; defer; reject.
 Decision: Defer explicit root.
-Normative rule: `private(namespace: \Root)` is not valid in v1.
+Normative rule: `private(namespace: \Root)` and `protected(namespace: \Root)`
+are not valid in v1.
 Consequences: No root metadata beyond declaring namespace.
 Evidence: Exact-only is useful without root syntax.
 Tests: `T-SYN-ROOT-NOT-V1`.

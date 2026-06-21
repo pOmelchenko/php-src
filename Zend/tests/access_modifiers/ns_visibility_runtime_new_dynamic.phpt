@@ -32,10 +32,14 @@ namespace {
     echo \Acme\Billing\newDynamicSame()->label(), "\n";
     echo \Acme\Billing\Application\newDynamicChild()->label(), "\n";
 
-    try {
-        \Acme\Other\newDynamicSibling();
-    } catch (Error $e) {
-        echo get_class($e), ': ', $e->getMessage(), "\n";
+    foreach ([
+        \Acme\Other\newDynamicSibling(...),
+    ] as $callback) {
+        try {
+            $callback();
+        } catch (Error $e) {
+            echo get_class($e), ': ', $e->getMessage(), "\n";
+        }
     }
 }
 
@@ -43,4 +47,4 @@ namespace {
 --EXPECT--
 dynamic
 dynamic
-Error: Cannot access protected(namespace) class Acme\Billing\DynamicService from namespace Acme\Other
+Error: Cannot access protected(namespace) class Acme\Billing\DynamicService from namespace acme\other

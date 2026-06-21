@@ -130,32 +130,36 @@ Deliverables:
 
 Completed in Phase 2 documentation:
 
-- selected exact-only `private(namespace)` class-like declarations for RFC v1;
-- excluded descendants, explicit root, `protected(namespace)`, `internal`,
+- selected `private(namespace)` exact access and `protected(namespace)`
+  namespace-subtree access for RFC v1;
+- excluded explicit root, `internal`,
   friend namespaces, and native consistent accessibility from RFC v1;
 - created `docs/wiki/07-risk-closure` with risk register, normative semantics,
   operation coverage, runtime/cache map, Reflection/autoload/alias policy,
   adversarial review, RFC splitting, implementation gates, and acceptance
   checklist;
-- rewrote the RFC draft to describe only the selected minimal scope;
+- rewrote the RFC draft to describe the selected private/protected scope;
 - added DEC-020 through DEC-040 as superseding v1 decisions;
 - replaced open questions with final dispositions and implementation gates;
-- updated test and PHPT plans for exact-only v1.
+- updated test and PHPT plans for the revised v1 model.
 
 Remaining before RFC discussion:
 
-- align the C prototype with exact-only v1 syntax and semantics;
+- finish aligning the C prototype beyond the current parser/metadata and
+  `new`/class-fetch slice;
 - complete class-entry enforcement coverage;
 - validate OPcache/preload/JIT behavior;
 - measure performance;
 - rerun targeted and broader PHPT suites.
 
-## Iteration 7: Exact-only v1 Implementation Alignment
+## Iteration 7: Private/protected v1 Implementation Alignment
 
 Deliverables:
 
-- reject class-level `protected(namespace)` in v1 parser/tests;
-- normalize declaring and caller namespaces for checks;
+- accept class-level `protected(namespace)` in v1 parser/tests; **done for the
+  current parser slice**;
+- normalize declaring and caller namespaces for checks; **done for the current
+  `new`/class-fetch slice**;
 - carry lexical namespace through top-level, closures, eval, traits, class
   linking, Reflection, internal functions, and unserialize;
 - enforce all operations in the v1 operation matrix;

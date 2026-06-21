@@ -1712,12 +1712,17 @@ static ZEND_COLD void report_class_fetch_error(const zend_string *class_name, ui
 static zend_string *zend_get_namespace_from_name(const zend_string *name)
 {
 	const char *separator = zend_memrchr(ZSTR_VAL(name), '\\', ZSTR_LEN(name));
+	zend_string *namespace_name;
+	zend_string *lc_namespace_name;
 
 	if (!separator) {
 		return zend_string_copy(ZSTR_EMPTY_ALLOC());
 	}
 
-	return zend_string_init(ZSTR_VAL(name), separator - ZSTR_VAL(name), 0);
+	namespace_name = zend_string_init(ZSTR_VAL(name), separator - ZSTR_VAL(name), 0);
+	lc_namespace_name = zend_string_tolower(namespace_name);
+	zend_string_release_ex(namespace_name, 0);
+	return lc_namespace_name;
 }
 
 static zend_string *zend_get_executed_namespace_name(void)
