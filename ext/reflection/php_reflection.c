@@ -4983,6 +4983,46 @@ ZEND_METHOD(ReflectionClass, isReadOnly)
 	_class_check_flag(INTERNAL_FUNCTION_PARAM_PASSTHRU, ZEND_ACC_READONLY_CLASS);
 }
 
+/* Returns whether this class has private(namespace) visibility */
+ZEND_METHOD(ReflectionClass, isNamespacePrivate)
+{
+	reflection_object *intern;
+	zend_class_entry *ce;
+
+	ZEND_PARSE_PARAMETERS_NONE();
+	GET_REFLECTION_OBJECT_PTR(ce);
+
+	RETURN_BOOL(ce->ce_flags2 & ZEND_ACC2_NAMESPACE_PRIVATE);
+}
+
+/* Returns whether this class has protected(namespace) visibility */
+ZEND_METHOD(ReflectionClass, isNamespaceProtected)
+{
+	reflection_object *intern;
+	zend_class_entry *ce;
+
+	ZEND_PARSE_PARAMETERS_NONE();
+	GET_REFLECTION_OBJECT_PTR(ce);
+
+	RETURN_BOOL(ce->ce_flags2 & ZEND_ACC2_NAMESPACE_PROTECTED);
+}
+
+/* Returns the namespace visibility root for namespace-restricted classes */
+ZEND_METHOD(ReflectionClass, getNamespaceVisibilityRoot)
+{
+	reflection_object *intern;
+	zend_class_entry *ce;
+
+	ZEND_PARSE_PARAMETERS_NONE();
+	GET_REFLECTION_OBJECT_PTR(ce);
+
+	if (!(ce->ce_flags2 & ZEND_ACC2_NAMESPACE_RESTRICTED)) {
+		RETURN_NULL();
+	}
+
+	RETURN_STR_COPY(ce->namespace_visibility_namespace);
+}
+
 /* {{{ Returns whether this class is abstract */
 ZEND_METHOD(ReflectionClass, isAbstract)
 {

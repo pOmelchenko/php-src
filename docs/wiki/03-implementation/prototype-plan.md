@@ -19,6 +19,8 @@ Tasks:
 
 Goal: accept syntax and store metadata, without claiming complete enforcement.
 
+Status: in progress as an incomplete experimental spike.
+
 Tasks:
 
 - recognize `private(namespace)` and `protected(namespace)`;
@@ -40,6 +42,23 @@ Known incomplete paths in Phase B:
 - OPcache/JIT/preload behavior.
 
 Phase B must be documented as an incomplete experimental spike.
+
+Current implementation notes:
+
+- The prototype uses dedicated scanner tokens `T_PRIVATE_NAMESPACE` and
+  `T_PROTECTED_NAMESPACE`.
+- The accepted order is currently prefix-only:
+  `private(namespace) final class A {}` and
+  `protected(namespace) abstract class B {}`.
+- `final private(namespace) class A {}` and
+  `abstract protected(namespace) class B {}` are not accepted by this spike.
+- Parser-only namespace visibility bits live in `zend_ast_decl->attr` and are
+  transferred into `ce_flags2` in `zend_compile_class_decl()`.
+- The declaration namespace is stored on `zend_class_entry` as an interned
+  string for restricted declarations; the global namespace uses an empty string.
+- ReflectionClass exposes the metadata through prototype methods.
+- OPcache persistence calculation/store paths include the new class-entry
+  string, but runtime OPcache behavior has not been tested yet.
 
 ## Phase C: Central Access Check
 
@@ -116,17 +135,36 @@ Tasks:
 - document multiple roots and friend namespaces as future scope unless a later
   RFC expands them.
 
-## Commands Once Environment Is Ready
+## Commands Used for Phase B
 
-Suggested build/test sequence:
+Docker debug build and targeted tests:
 
 ```sh
-./buildconf
-./configure --enable-debug --enable-zts --enable-opcache
-make -j$(sysctl -n hw.ncpu)
-TEST_PHP_ARGS="-q" make test TESTS="Zend/tests/access_modifiers"
+docker compose -f docker/dev/compose.yml run --rm php-src-dev bash -lc '
+  ./buildconf --force
+  ./configure --disable-all --enable-debug --enable-tokenizer
+  make -j"$(nproc)"
+  sapi/cli/php run-tests.php -q \
+    Zend/tests/access_modifiers/ns_visibility_class_like_metadata.phpt \
+    Zend/tests/access_modifiers/ns_visibility_class_like_syntax.phpt \
+    Zend/tests/access_modifiers/ns_visibility_duplicate_modifier_error.phpt \
+    Zend/tests/access_modifiers/ns_visibility_anonymous_class_error.phpt \
+    Zend/tests/access_modifiers/ns_visibility_explicit_root_error.phpt \
+    ext/tokenizer/tests/ns_visibility_tokens.phpt
+'
 ```
 
-Current iteration did not run these commands because the repository is not
-configured, `sapi/cli/php` is absent, `re2c` is missing, and Bison is old.
+Result: passed, 6/6 PHPT tests.
 
+Docker ZTS debug build:
+
+```sh
+docker compose -f docker/dev/compose.yml run --rm php-src-dev bash -lc '
+  ./buildconf --force
+  ./configure --disable-all --enable-debug --enable-zts --enable-tokenizer
+  make -j"$(nproc)"
+  sapi/cli/php -v
+'
+```
+
+Result: build passed and reported `PHP 8.6.0-dev (cli) (ZTS DEBUG)`.

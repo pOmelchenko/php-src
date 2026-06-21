@@ -23,3 +23,13 @@
 - Added Docker development environment under `docker/dev`.
 - Built and smoke-tested the Docker image with Bison 3.8.2, re2c 3.0, and
   Autoconf 2.71.
+- Started an incomplete experimental Phase B parser/metadata spike.
+- Added scanner/parser support for `private(namespace)` and
+  `protected(namespace)` on named class, interface, trait, and enum
+  declarations.
+- Added class-entry metadata, ReflectionClass metadata methods, tokenizer
+  token data, and OPcache metadata persistence plumbing for the Phase B spike.
+- Added six PHPT tests covering accepted syntax, rejected syntax, Reflection
+  metadata, and tokenizer tokens.
+- Verified a Docker debug build, targeted PHPT run, and Docker ZTS debug build.
+- Runtime access enforcement is still not implemented.

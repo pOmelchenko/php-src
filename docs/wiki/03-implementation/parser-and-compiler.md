@@ -2,6 +2,8 @@
 
 ## Minimal Parser Spike
 
+Status: implemented in the working tree as an incomplete Phase B spike.
+
 Target accepted syntax:
 
 ```php
@@ -11,6 +13,23 @@ private(namespace) interface I {}
 protected(namespace) trait T {}
 private(namespace) enum E {}
 ```
+
+Current accepted class-modifier order is prefix-only:
+
+```php
+private(namespace) final class A {}
+protected(namespace) abstract class B {}
+private(namespace) readonly class C {}
+```
+
+The following order is not accepted by the current spike:
+
+```php
+final private(namespace) class A {}
+abstract protected(namespace) class B {}
+```
+
+This is a prototype limitation, not a settled language decision.
 
 Target rejected syntax:
 
@@ -36,38 +55,46 @@ The scanner-token approach is closer to PR #20421 and avoids broader grammar
 ambiguity. It also lets tokenizer consumers see a single feature token, though
 that requires tokenizer updates and tests.
 
-## AST Flags
+Current spike decision: dedicated scanner tokens are implemented:
 
-The class-like declaration already uses `ZEND_AST_CLASS` plus flags. A parser
-spike should add flags such as:
+- `T_PRIVATE_NAMESPACE`;
+- `T_PROTECTED_NAMESPACE`.
+
+## AST Metadata
+
+The class-like declaration already uses `ZEND_AST_CLASS` plus declaration
+flags. Ordinary class flags have little free space, so the current spike uses
+`zend_ast_decl->attr` for parser-only namespace visibility metadata:
 
 ```c
-ZEND_ACC_NAMESPACE_PRIVATE
-ZEND_ACC_NAMESPACE_PROTECTED
-ZEND_ACC_NAMESPACE_RESTRICTED
+ZEND_AST_CLASS_NAMESPACE_PRIVATE
+ZEND_AST_CLASS_NAMESPACE_PROTECTED
+ZEND_AST_CLASS_NAMESPACE_RESTRICTED
 ```
 
-Exact bit allocation must be audited against current `ce_flags` usage before
-patching. The names above are placeholders for planning.
+These are transferred into `ce_flags2` on `zend_class_entry` and stripped
+from the AST-only representation by construction; they are never ORed into
+ordinary `decl->flags`.
 
 ## Grammar Coverage
 
 Current grammar only accepts `class_modifiers` before `T_CLASS`. Traits,
 interfaces, and enums have separate productions without `class_modifiers`.
 
-Therefore the implementation cannot only extend `class_modifier`. It must
-either:
+Therefore the implementation cannot only extend `class_modifier`. The current
+spike chose a carefully constrained optional modifier prefix for each
+declaration kind:
 
-- introduce a new `class_like_visibility_modifiers` grammar fragment shared by
-  class/interface/trait/enum, or
-- duplicate a carefully constrained optional modifier prefix for each
-  declaration kind.
+- `namespace_visibility_modifier class_modifiers_optional T_CLASS`;
+- `namespace_visibility_modifier T_INTERFACE`;
+- `namespace_visibility_modifier T_TRAIT`;
+- `namespace_visibility_modifier T_ENUM`.
 
-The shared grammar is preferable if it keeps error messages predictable.
+This kept Bison at zero parser conflicts in the Docker environment.
 
 ## Modifier Ordering
 
-Valid examples should include:
+The desired eventual design may still include both orders:
 
 ```php
 private(namespace) final class A {}
@@ -76,9 +103,9 @@ protected(namespace) readonly class C {}
 abstract protected(namespace) class D {}
 ```
 
-Order should either follow existing class modifier normalization or be
-restricted by grammar. If both orders are accepted, duplicate/conflicting
-modifier checks must produce stable errors.
+Order should either follow existing class modifier normalization or remain
+restricted by grammar. If both orders are accepted later,
+duplicate/conflicting modifier checks must produce stable errors.
 
 Invalid combinations:
 
@@ -91,15 +118,15 @@ Invalid combinations:
 ## Declaration Namespace Metadata
 
 During `zend_compile_class_decl()`, `CG(file_context).current_namespace` is
-available. A metadata spike should store:
+available. The current spike stores:
 
 - normalized declaration namespace on `zend_class_entry`;
 - optionally normalized visibility root, same as declaration namespace for base
   syntax;
 - original spelling for diagnostics only if needed.
 
-Global namespace should be stored as `NULL` or an interned empty string, but the
-choice must be consistent with OPcache persistence and fast-path checks.
+Global namespace is stored as an interned empty string for restricted
+declarations. Unrestricted declarations keep the metadata pointer `NULL`.
 
 ## Compiler Output Tests
 
@@ -111,4 +138,3 @@ Parser/compiler spike tests should cover:
 - rejected explicit root if not implemented;
 - Reflection or debug dump showing metadata exists;
 - no runtime enforcement claim beyond the implemented scope.
-

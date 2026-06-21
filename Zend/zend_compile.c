@@ -890,6 +890,10 @@ static const char *zend_modifier_token_to_string(uint32_t token)
 			return "protected(set)";
 		case T_PRIVATE_SET:
 			return "private(set)";
+		case T_PRIVATE_NAMESPACE:
+			return "private(namespace)";
+		case T_PROTECTED_NAMESPACE:
+			return "protected(namespace)";
 		default: ZEND_UNREACHABLE();
 	}
 }
@@ -943,6 +947,9 @@ uint32_t zend_modifier_token_to_flag(zend_modifier_target target, uint32_t token
 			if (target == ZEND_MODIFIER_TARGET_PROPERTY || target == ZEND_MODIFIER_TARGET_CPP) {
 				return ZEND_ACC_PRIVATE_SET;
 			}
+			break;
+		case T_PRIVATE_NAMESPACE:
+		case T_PROTECTED_NAMESPACE:
 			break;
 	}
 
@@ -2067,6 +2074,7 @@ ZEND_API void zend_initialize_class_data(zend_class_entry *ce, bool nullify_hand
 	ce->refcount = 1;
 	ce->ce_flags = ZEND_ACC_CONSTANTS_UPDATED;
 	ce->ce_flags2 = 0;
+	ce->namespace_visibility_namespace = NULL;
 
 	if (CG(compiler_options) & ZEND_COMPILE_GUARDS) {
 		ce->ce_flags |= ZEND_ACC_USE_GUARDS;
@@ -9533,6 +9541,8 @@ static void zend_compile_enum_backing_type(zend_class_entry *ce, zend_ast *enum_
 static void zend_compile_class_decl(znode *result, const zend_ast *ast, bool toplevel) /* {{{ */
 {
 	const zend_ast_decl *decl = (const zend_ast_decl *) ast;
+	uint32_t flags = decl->flags;
+	zend_ast_attr namespace_visibility = decl->attr & ZEND_AST_CLASS_NAMESPACE_RESTRICTED;
 	zend_ast *extends_ast = decl->child[0];
 	zend_ast *implements_ast = decl->child[1];
 	zend_ast *stmt_ast = decl->child[2];
@@ -9543,7 +9553,7 @@ static void zend_compile_class_decl(znode *result, const zend_ast *ast, bool top
 
 	zend_class_entry *original_ce = CG(active_class_entry);
 
-	if (EXPECTED((decl->flags & ZEND_ACC_ANON_CLASS) == 0)) {
+	if (EXPECTED((flags & ZEND_ACC_ANON_CLASS) == 0)) {
 		zend_string *unqualified_name = decl->name;
 
 		if (CG(active_class_entry)) {
@@ -9551,11 +9561,11 @@ static void zend_compile_class_decl(znode *result, const zend_ast *ast, bool top
 		}
 
 		const char *type = "a class name";
-		if (decl->flags & ZEND_ACC_ENUM) {
+		if (flags & ZEND_ACC_ENUM) {
 			type = "an enum name";
-		} else if (decl->flags & ZEND_ACC_INTERFACE) {
+		} else if (flags & ZEND_ACC_INTERFACE) {
 			type = "an interface name";
-		} else if (decl->flags & ZEND_ACC_TRAIT) {
+		} else if (flags & ZEND_ACC_TRAIT) {
 			type = "a trait name";
 		}
 		zend_assert_valid_class_name(unqualified_name, type);
@@ -9589,7 +9599,7 @@ static void zend_compile_class_decl(znode *result, const zend_ast *ast, bool top
 	ce->type = ZEND_USER_CLASS;
 	ce->name = name;
 	zend_initialize_class_data(ce, true);
-	if (!(decl->flags & ZEND_ACC_ANON_CLASS)) {
+	if (!(flags & ZEND_ACC_ANON_CLASS)) {
 		zend_alloc_ce_cache(ce->name);
 	}
 
@@ -9599,7 +9609,18 @@ static void zend_compile_class_decl(znode *result, const zend_ast *ast, bool top
 		ZEND_MAP_PTR_NEW(ce->mutable_data);
 	}
 
-	ce->ce_flags |= decl->flags;
+	ce->ce_flags |= flags;
+	if (namespace_visibility) {
+		if (namespace_visibility & ZEND_AST_CLASS_NAMESPACE_PRIVATE) {
+			ce->ce_flags2 |= ZEND_ACC2_NAMESPACE_PRIVATE;
+		} else {
+			ZEND_ASSERT(namespace_visibility & ZEND_AST_CLASS_NAMESPACE_PROTECTED);
+			ce->ce_flags2 |= ZEND_ACC2_NAMESPACE_PROTECTED;
+		}
+		ce->namespace_visibility_namespace = FC(current_namespace)
+			? zend_string_copy(FC(current_namespace))
+			: zend_string_copy(ZSTR_EMPTY_ALLOC());
+	}
 	ce->info.user.filename = zend_string_copy(zend_get_compiled_filename());
 	ce->info.user.line_start = decl->start_lineno;
 	ce->info.user.line_end = decl->end_lineno;
@@ -9608,7 +9629,7 @@ static void zend_compile_class_decl(znode *result, const zend_ast *ast, bool top
 		ce->doc_comment = zend_string_copy(decl->doc_comment);
 	}
 
-	if (UNEXPECTED((decl->flags & ZEND_ACC_ANON_CLASS))) {
+	if (UNEXPECTED((flags & ZEND_ACC_ANON_CLASS))) {
 		/* Serialization is not supported for anonymous classes */
 		ce->ce_flags |= ZEND_ACC_NOT_SERIALIZABLE;
 	}
@@ -9707,7 +9728,7 @@ link_unbound:
 	 * zend_add_literal_string() which gives us the new value. */
 	opline->op1.constant = zend_add_literal_string(&lcname);
 
-	if (decl->flags & ZEND_ACC_ANON_CLASS) {
+	if (flags & ZEND_ACC_ANON_CLASS) {
 		opline->opcode = ZEND_DECLARE_ANON_CLASS;
 		opline->extended_value = zend_alloc_cache_slot();
 		zend_make_var_result(result, opline);

@@ -22,6 +22,8 @@ No C-code prototype was started.
 
 ## Iteration 2: Parser and Metadata Spike
 
+Status: in progress in the working tree.
+
 Entry requirements:
 
 - build dependencies available (`re2c`, suitable Bison, configured build);
@@ -35,6 +37,24 @@ Deliverables:
 - class-entry metadata stored;
 - reflection/debug metadata visible;
 - explicit warning that runtime enforcement is incomplete.
+
+Completed so far:
+
+- accepted syntax for named class/interface/trait/enum;
+- rejected anonymous classes, duplicate namespace visibility prefixes, and
+  explicit root syntax;
+- class-entry flags and declaration namespace storage;
+- ReflectionClass metadata methods;
+- tokenizer token data;
+- OPcache persistence size/store plumbing for the metadata string;
+- Docker debug build, targeted PHPT run, and Docker ZTS debug build.
+
+Remaining before closing Iteration 2:
+
+- decide whether modifier order should stay prefix-only or accept both orders;
+- add parser rejection for `internal` if needed;
+- decide whether Reflection metadata methods are temporary prototype API or RFC
+  surface.
 
 ## Iteration 3: Minimal Runtime Enforcement
 
@@ -86,4 +106,3 @@ Deliverables:
 - collect implementation data;
 - discuss with internals;
 - adjust scope before any vote.
-

@@ -31,14 +31,20 @@ This repository is `php-src`, not a separate research repository:
 - Git top-level: `/Users/omelchenko/Developer/c/php-src`
 - Remote: `git@github.com:php/php-src.git`
 - Branch: `packages`
-- Commit: `0fff3ccce2f5f9e0695502a509fa8e8edf8f77d4`
+- Upstream php-src commit researched:
+  `0fff3ccce2f5f9e0695502a509fa8e8edf8f77d4`
+- Current local base commit before the Phase B prototype:
+  `aa32df4a7b61334506fba7d7e508949627523396`
 - Describe: `security-audit-2024-10061-g0fff3ccce2f`
 - Latest commit inspected: merge from `PHP-8.5`, message
   `Fix GH-22158: JIT observer dispatch through wrong run_time_cache slot`
 - PHP version header: `PHP_VERSION 8.6.0-dev`, `PHP_VERSION_ID 80600`
 
-The first iteration is documentation only. It does not modify Zend Engine C
-code, generated parser files, stubs, or tests.
+The first iteration was documentation only. A later Phase B prototype has now
+started in the working tree. It is intentionally limited to parser support,
+class-entry metadata, Reflection metadata access, tokenizer support, OPcache
+metadata persistence plumbing, and parser/metadata PHPT tests. It does not
+implement runtime access enforcement.
 
 ## Local Build Environment
 
@@ -76,6 +82,14 @@ Before creating this wiki, the worktree had no reported modified, staged, or
 untracked files. This iteration intentionally adds only files under
 `docs/wiki/`.
 
+Current Phase B working tree status:
+
+- modified Zend Engine, Reflection, OPcache persistence, and tokenizer files;
+- added six PHPT tests for parser acceptance/rejection, Reflection metadata,
+  and tokenizer tokens;
+- no unrelated changes are intended;
+- no code commit has been created for the Phase B prototype yet.
+
 ## Navigation and Status
 
 | Area | File | Status |
@@ -111,6 +125,36 @@ untracked files. This iteration intentionally adds only files under
 | Progress | [roadmap.md](06-progress/roadmap.md) | Roadmap |
 | Progress | [findings.md](06-progress/findings.md) | Key findings |
 | Progress | [changelog.md](06-progress/changelog.md) | Wiki changelog |
+
+## Current Prototype Status
+
+Status: incomplete experimental Phase B spike.
+
+Implemented in the working tree:
+
+- scanner tokens `T_PRIVATE_NAMESPACE` and `T_PROTECTED_NAMESPACE`;
+- parser support for `private(namespace)` and `protected(namespace)` as a
+  prefix before named class-like declarations;
+- supported declaration kinds: named class, interface, trait, and enum;
+- anonymous classes rejected by grammar;
+- declaration namespace stored on `zend_class_entry` for restricted
+  class-like declarations;
+- new ReflectionClass metadata methods:
+  `isNamespacePrivate()`, `isNamespaceProtected()`, and
+  `getNamespaceVisibilityRoot()`;
+- tokenizer metadata for the new tokens;
+- OPcache persistence size/store updates for the new class-entry string.
+
+Known limitations:
+
+- no runtime access checks are implemented;
+- static and dynamic class fetches are not restricted;
+- inheritance, interfaces, traits, types, callables, aliases, Reflection
+  construction, preload, OPcache runtime behavior, and JIT paths are not yet
+  enforced;
+- current grammar accepts the namespace visibility modifier only before normal
+  class modifiers, for example `protected(namespace) abstract class A {}`;
+- explicit root syntax remains Future Scope.
 
 ## Source Register
 
@@ -149,18 +193,54 @@ marked as a hypothesis. The main sources used in this iteration are:
 
 ## Tests Run
 
-No PHPT, build, debug, ZTS, OPcache, or JIT tests were run. The repository is
-not configured, the CLI binary is absent, `re2c` is missing, and the available
-Bison is old for parser work.
+The host checkout is still not configured and still lacks a host-built
+`sapi/cli/php`, but the Docker environment was used for the prototype.
 
-Suggested commands once dependencies and a build are available:
+Docker debug build:
 
 ```sh
-./buildconf
-./configure --enable-debug --enable-zts --enable-opcache
-make -j$(sysctl -n hw.ncpu)
-TEST_PHP_ARGS="-q" make test TESTS="Zend/tests/access_modifiers"
+docker compose -f docker/dev/compose.yml run --rm php-src-dev bash -lc \
+  './buildconf --force &&
+   ./configure --disable-all --enable-debug --enable-tokenizer &&
+   make -j"$(nproc)"'
 ```
+
+Result: passed on 2026-06-21 in `/tmp/php-src-build` inside the dev container.
+
+Targeted PHPT run:
+
+```sh
+sapi/cli/php run-tests.php -q \
+  Zend/tests/access_modifiers/ns_visibility_class_like_metadata.phpt \
+  Zend/tests/access_modifiers/ns_visibility_class_like_syntax.phpt \
+  Zend/tests/access_modifiers/ns_visibility_duplicate_modifier_error.phpt \
+  Zend/tests/access_modifiers/ns_visibility_anonymous_class_error.phpt \
+  Zend/tests/access_modifiers/ns_visibility_explicit_root_error.phpt \
+  ext/tokenizer/tests/ns_visibility_tokens.phpt
+```
+
+Result: 6/6 passed.
+
+Docker ZTS debug build:
+
+```sh
+docker compose -f docker/dev/compose.yml run --rm php-src-dev bash -lc \
+  './buildconf --force &&
+   ./configure --disable-all --enable-debug --enable-zts --enable-tokenizer &&
+   make -j"$(nproc)" &&
+   sapi/cli/php -v'
+```
+
+Result: build passed and reported `PHP 8.6.0-dev (cli) (ZTS DEBUG)`.
+
+Not run yet:
+
+- full `make test`;
+- full access-matrix PHPT suite;
+- OPcache behavior tests with `opcache.enable_cli=1`;
+- preload tests;
+- JIT behavior tests;
+- performance benchmarks.
 
 Using the Docker environment:
 

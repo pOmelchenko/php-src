@@ -365,3 +365,34 @@ Evidence:
 C#, Kotlin, and Swift all tie `internal`-style visibility to a real compilation
 or package unit.
 
+## DEC-016: Namespace Visibility Modifier Order
+
+Status: unresolved
+
+Context:
+The parser spike must decide whether `private(namespace)` behaves like a normal
+class modifier that can appear in any class-modifier order, or like a special
+declaration prefix shared by class, interface, trait, and enum productions.
+
+Options:
+
+- accept only prefix order, e.g. `protected(namespace) abstract class A {}`;
+- accept both prefix and mixed order, e.g. also
+  `abstract protected(namespace) class A {}`;
+- reject class modifiers after namespace visibility until a fuller grammar
+  design exists.
+
+Decision:
+The current Phase B spike accepts only prefix order. This is a prototype
+constraint, not a final language decision.
+
+Consequences:
+The grammar is conflict-free and works uniformly for named class, interface,
+trait, and enum declarations. A later RFC-quality implementation must either
+justify prefix-only ordering or extend duplicate/conflicting modifier handling
+to support mixed order.
+
+Evidence:
+The Docker-generated parser reports zero conflicts with the prefix-only
+grammar. Earlier broad optional modifier productions introduced reduce/reduce
+conflicts.

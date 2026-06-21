@@ -1,5 +1,5 @@
 /* This is a generated file, edit php_reflection.stub.php instead.
- * Stub hash: c80946cc8c8215bb6527e09bb71b3a97a76a6a98
+ * Stub hash: bd65de481e2c716374d6e86eba5d5e9fe296d6b3
  * Has decl header: yes */
 
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_TYPE_INFO_EX(arginfo_class_Reflection_getModifierNames, 0, 1, IS_ARRAY, 0)
@@ -272,6 +272,13 @@ ZEND_END_ARG_INFO()
 #define arginfo_class_ReflectionClass_isFinal arginfo_class_ReflectionFunctionAbstract_inNamespace
 
 #define arginfo_class_ReflectionClass_isReadOnly arginfo_class_ReflectionFunctionAbstract_hasTentativeReturnType
+
+#define arginfo_class_ReflectionClass_isNamespacePrivate arginfo_class_ReflectionFunctionAbstract_hasTentativeReturnType
+
+#define arginfo_class_ReflectionClass_isNamespaceProtected arginfo_class_ReflectionFunctionAbstract_hasTentativeReturnType
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_ReflectionClass_getNamespaceVisibilityRoot, 0, 0, IS_STRING, 1)
+ZEND_END_ARG_INFO()
 
 #define arginfo_class_ReflectionClass_getModifiers arginfo_class_ReflectionFunctionAbstract_getNumberOfParameters
 
@@ -698,8 +705,7 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_ReflectionFiber_getFiber, 0, 0, Fiber, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_ReflectionFiber_getExecutingFile, 0, 0, IS_STRING, 1)
-ZEND_END_ARG_INFO()
+#define arginfo_class_ReflectionFiber_getExecutingFile arginfo_class_ReflectionClass_getNamespaceVisibilityRoot
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_ReflectionFiber_getExecutingLine, 0, 0, IS_LONG, 1)
 ZEND_END_ARG_INFO()
@@ -836,6 +842,9 @@ ZEND_METHOD(ReflectionClass, isEnum);
 ZEND_METHOD(ReflectionClass, isAbstract);
 ZEND_METHOD(ReflectionClass, isFinal);
 ZEND_METHOD(ReflectionClass, isReadOnly);
+ZEND_METHOD(ReflectionClass, isNamespacePrivate);
+ZEND_METHOD(ReflectionClass, isNamespaceProtected);
+ZEND_METHOD(ReflectionClass, getNamespaceVisibilityRoot);
 ZEND_METHOD(ReflectionClass, getModifiers);
 ZEND_METHOD(ReflectionClass, isInstance);
 ZEND_METHOD(ReflectionClass, newInstance);
@@ -1133,6 +1142,9 @@ static const zend_function_entry class_ReflectionClass_methods[] = {
 	ZEND_ME(ReflectionClass, isAbstract, arginfo_class_ReflectionClass_isAbstract, ZEND_ACC_PUBLIC)
 	ZEND_ME(ReflectionClass, isFinal, arginfo_class_ReflectionClass_isFinal, ZEND_ACC_PUBLIC)
 	ZEND_ME(ReflectionClass, isReadOnly, arginfo_class_ReflectionClass_isReadOnly, ZEND_ACC_PUBLIC)
+	ZEND_ME(ReflectionClass, isNamespacePrivate, arginfo_class_ReflectionClass_isNamespacePrivate, ZEND_ACC_PUBLIC)
+	ZEND_ME(ReflectionClass, isNamespaceProtected, arginfo_class_ReflectionClass_isNamespaceProtected, ZEND_ACC_PUBLIC)
+	ZEND_ME(ReflectionClass, getNamespaceVisibilityRoot, arginfo_class_ReflectionClass_getNamespaceVisibilityRoot, ZEND_ACC_PUBLIC)
 	ZEND_ME(ReflectionClass, getModifiers, arginfo_class_ReflectionClass_getModifiers, ZEND_ACC_PUBLIC)
 	ZEND_ME(ReflectionClass, isInstance, arginfo_class_ReflectionClass_isInstance, ZEND_ACC_PUBLIC)
 	ZEND_ME(ReflectionClass, newInstance, arginfo_class_ReflectionClass_newInstance, ZEND_ACC_PUBLIC)

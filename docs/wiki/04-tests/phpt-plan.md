@@ -1,8 +1,7 @@
 # PHPT Plan
 
-No PHPT files were created in this iteration because no engine behavior was
-implemented. The first actual tests should be added with Phase B parser and
-metadata work.
+Phase B parser/metadata PHPT files now exist. The broader runtime enforcement
+plan remains pending.
 
 ## Phase B Parser and Metadata Tests
 
@@ -10,19 +9,20 @@ Directory:
 
 - `Zend/tests/access_modifiers`
 
-Planned files:
+Implemented files:
 
-- `ns_visibility_class_private_syntax.phpt`
-- `ns_visibility_class_protected_syntax.phpt`
-- `ns_visibility_interface_syntax.phpt`
-- `ns_visibility_trait_syntax.phpt`
-- `ns_visibility_enum_syntax.phpt`
-- `ns_visibility_anonymous_class_rejected.phpt`
-- `ns_visibility_duplicate_modifier_rejected.phpt`
-- `ns_visibility_private_and_protected_rejected.phpt`
-- `ns_visibility_explicit_root_rejected_before_phase_f.phpt`
-- `ns_visibility_reflection_metadata.phpt`
-- `ns_visibility_tokenizer.phpt`
+- `Zend/tests/access_modifiers/ns_visibility_class_like_syntax.phpt`
+- `Zend/tests/access_modifiers/ns_visibility_class_like_metadata.phpt`
+- `Zend/tests/access_modifiers/ns_visibility_anonymous_class_error.phpt`
+- `Zend/tests/access_modifiers/ns_visibility_duplicate_modifier_error.phpt`
+- `Zend/tests/access_modifiers/ns_visibility_explicit_root_error.phpt`
+- `ext/tokenizer/tests/ns_visibility_tokens.phpt`
+
+Still planned:
+
+- `ns_visibility_private_and_protected_rejected.phpt`;
+- parser rejection for `internal class A {}` if needed;
+- parser-order tests if the final syntax accepts both modifier orders.
 
 Assertions:
 
@@ -138,24 +138,32 @@ Planned files:
 
 OPcache/JIT tests should be skipped when the extension or mode is unavailable.
 
-## Commands
+## Commands and Results
 
-Once a build exists:
+Docker debug build plus targeted PHPT run:
 
 ```sh
-TEST_PHP_ARGS="-q" make test TESTS="Zend/tests/access_modifiers/ns_visibility_*.phpt"
-TEST_PHP_ARGS="-q -d opcache.enable_cli=1" make test TESTS="Zend/tests/access_modifiers/ns_visibility_opcache_*.phpt"
+sapi/cli/php run-tests.php -q \
+  Zend/tests/access_modifiers/ns_visibility_class_like_metadata.phpt \
+  Zend/tests/access_modifiers/ns_visibility_class_like_syntax.phpt \
+  Zend/tests/access_modifiers/ns_visibility_duplicate_modifier_error.phpt \
+  Zend/tests/access_modifiers/ns_visibility_anonymous_class_error.phpt \
+  Zend/tests/access_modifiers/ns_visibility_explicit_root_error.phpt \
+  ext/tokenizer/tests/ns_visibility_tokens.phpt
 ```
 
-Not run in this iteration:
+Result on 2026-06-21: 6/6 passed.
 
-- targeted PHPT tests;
+Also run:
+
+- Docker debug build: passed;
+- Docker ZTS debug build: passed.
+
+Not run yet:
+
 - full `make test`;
-- debug build;
-- ZTS build;
 - OPcache tests;
 - JIT tests.
 
-Reason: the repository is not configured, no CLI binary is present, `re2c` is
-missing, and Bison is old.
-
+Reason: Phase B does not implement runtime enforcement, so OPcache/JIT behavior
+tests would not yet exercise the intended feature semantics.

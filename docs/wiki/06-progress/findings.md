@@ -64,11 +64,32 @@ Most important design constraint:
 - Class entry cache hits must not skip access checks for later callers from
   disallowed namespaces.
 
+Phase B prototype findings:
+
+- `private(namespace)` and `protected(namespace)` can be tokenized as dedicated
+  scanner tokens, matching the `private(set)`/`protected(set)` precedent.
+- A conflict-free grammar spike is simplest when namespace visibility is a
+  declaration prefix before normal class modifiers:
+  `protected(namespace) abstract class A {}`.
+- Allowing both `abstract protected(namespace) class A {}` and
+  `protected(namespace) abstract class A {}` is possible future work, but it
+  increases grammar and duplicate-modifier handling.
+- The class declaration AST `attr` field is a better Phase B carrier than
+  temporary `ce_flags` bits, because ordinary class flags have very little free
+  space and bit 30 is already used by `ZEND_ACC_USE_GUARDS`.
+- The spike maps `zend_ast_decl->attr` namespace visibility bits into
+  `ce_flags2` during `zend_compile_class_decl()`.
+- Metadata belongs on `zend_class_entry`, so `class_alias()` cannot be allowed
+  to widen visibility later.
+- Reflection metadata is useful for tests, but it is not an enforcement
+  mechanism.
+
 ## Feasibility
 
 The feature appears feasible as a staged php-src implementation, but not as a
 small parser-only patch if complete enforcement is required. A correct feature
 crosses parser, compiler, class entries, class fetch, inheritance linking,
 type resolution, reflection, OPcache, preload, JIT, and tests. The Docker
-environment removes the local generator-tool blocker for the next parser and
-metadata spike.
+environment removed the local generator-tool blocker and the Phase B
+parser/metadata spike now builds and passes targeted tests. Runtime enforcement
+remains the hard part and has not started.

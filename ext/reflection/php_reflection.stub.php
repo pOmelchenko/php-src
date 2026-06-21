@@ -359,6 +359,12 @@ class ReflectionClass implements Reflector
 
     public function isReadOnly(): bool {}
 
+    public function isNamespacePrivate(): bool {}
+
+    public function isNamespaceProtected(): bool {}
+
+    public function getNamespaceVisibilityRoot(): ?string {}
+
     /** @tentative-return-type */
     public function getModifiers(): int {}
 

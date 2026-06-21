@@ -343,7 +343,14 @@ typedef struct _zend_oparray_context {
 /* Class Flags 2 (ce_flags2) (unused: 0-31)               |     |     |     */
 /* =========================                              |     |     |     */
 /*                                                        |     |     |     */
-/* #define ZEND_ACC2_EXAMPLE             (1 << 0)      X  |     |     |     */
+#define ZEND_ACC2_NAMESPACE_PRIVATE      (1 << 0)  /*  X  |     |     |     */
+#define ZEND_ACC2_NAMESPACE_PROTECTED    (1 << 1)  /*  X  |     |     |     */
+#define ZEND_ACC2_NAMESPACE_RESTRICTED   (ZEND_ACC2_NAMESPACE_PRIVATE | ZEND_ACC2_NAMESPACE_PROTECTED)
+/*                                                        |     |     |     */
+/* Temporary parser-only zend_ast_decl.attr bits for class declarations. */
+#define ZEND_AST_CLASS_NAMESPACE_PRIVATE    (1 << 0)
+#define ZEND_AST_CLASS_NAMESPACE_PROTECTED  (1 << 1)
+#define ZEND_AST_CLASS_NAMESPACE_RESTRICTED (ZEND_AST_CLASS_NAMESPACE_PRIVATE | ZEND_AST_CLASS_NAMESPACE_PROTECTED)
 /*                                                        |     |     |     */
 /* Function Flags (unused: 30)                            |     |     |     */
 /* ==============                                         |     |     |     */
