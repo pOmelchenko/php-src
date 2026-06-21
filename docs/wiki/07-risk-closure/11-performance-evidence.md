@@ -33,6 +33,13 @@ The restricted callable-validation row improves by 27-38% by paired median,
 with Callgrind showing a 23.14% instruction-count reduction for the OPcache/no
 JIT profile.
 
+A second measured 2026-06-22 follow-up adds an exact-case namespace-prefix fast
+path before the case-insensitive fallback. That further improves restricted
+callable validation by 15-21% over the allocation-removal build, and reduces the
+OPcache/no-JIT Callgrind profile by another 16.00%. Public reruns remain within
+Gate 5; the only threshold blip, tracing-JIT `public_instanceof`, flips to
+-1.27% in a longer 200M-iteration rerun with high RSD.
+
 Raw artifacts were kept outside the repository under
 `/tmp/nsvis-gate5-results/` and `/tmp/nsvis-perf-pass-20260622/`.
 
@@ -59,6 +66,11 @@ Raw artifacts were kept outside the repository under
 | `nsvis-perf-pass-20260622/paired-static-method-1b/*` | Nine-pair 1B-iteration rerun for tracing-JIT `public_static_method` |
 | `nsvis-perf-pass-20260622/profiles/callgrind-*-opcache-nojit-*` | Follow-up Callgrind profiles for restricted rows |
 | `nsvis-perf-pass-20260622/profiles/cachegrind-*-private_allowed_callable_validation.out` | Follow-up Cachegrind pair for the main restricted callable target |
+| `nsvis-perf-pass-20260622/exactcase-full.json` | Full Gate 5 matrix after the exact-case prefix fast path |
+| `nsvis-perf-pass-20260622/paired-exactcase-final.json` | Seven-pair allocation-removal/exact-case public rows and targeted restricted rows |
+| `nsvis-perf-pass-20260622/paired-exactcase-final-long/*` | Longer exact-case paired reruns for noisy public rows |
+| `nsvis-perf-pass-20260622/paired-exactcase-instanceof-200m/*` | Nine-pair 200M-iteration exact-case rerun for tracing-JIT `public_instanceof` |
+| `nsvis-perf-pass-20260622/exactcase-profiles/callgrind-*-private_allowed_callable_validation.out` | Exact-case Callgrind pair for the main restricted callable target |
 
 Rejected experiments were also saved (`current-cachehit-global*`,
 `current-globalflag*`). They are not retained: the executor-global
@@ -77,6 +89,8 @@ consumer access that must throw, so the shortcut was reverted.
 | Current commit | `6391d08d0cbc4f25d38e9ac60fe7873b0a47e785` plus local Gate 5 optimization, class-entry storage removal, `instanceof` cold miss helper, and docs edits |
 | Follow-up date | 2026-06-22 |
 | Follow-up current commit | `96b5562a1b9b05548bd50848640af4ed8e5f216f` plus local restricted-check allocation removal |
+| Exact-case follow-up base | `585d82a6f662b9cd62ccc3d78db8472750037e7b` |
+| Exact-case follow-up candidate | `585d82a6f662b9cd62ccc3d78db8472750037e7b` plus local exact-case namespace-prefix fast path |
 | Container | `php-src-dev:bookworm` from `docker/dev/compose.yml` |
 | OS/CPU | Docker LinuxKit `6.12.76-linuxkit`, `aarch64`, 14 vCPU visible in container |
 | Compiler | `cc (Debian 12.2.0-14+deb12u1) 12.2.0` |
@@ -88,10 +102,12 @@ consumer access that must throw, so the shortcut was reverted.
 | Benchmark harness | `benchmark/ns_visibility_gate5.php` |
 | Structure size helper | `benchmark/ns_visibility_sizes.c` |
 
-The 2026-06-22 follow-up used the same Docker image and release NTS CLI build.
-It built saved before/after binaries from `96b5562` with and without the local
-allocation-removal patch, then ran alternating paired workers from those
-binaries. The follow-up artifacts live in `/tmp/nsvis-perf-pass-20260622/`.
+The 2026-06-22 allocation-removal follow-up used the same Docker image and
+release NTS CLI build. It built saved before/after binaries from `96b5562` with
+and without the local allocation-removal patch, then ran alternating paired
+workers from those binaries. The exact-case follow-up reused the saved
+allocation-removal binary as `php-after` and compared it with `php-exactcase`.
+The follow-up artifacts live in `/tmp/nsvis-perf-pass-20260622/`.
 
 Representative command shape:
 
@@ -326,6 +342,48 @@ Cachegrind for the same callable-validation worker shows total Ir moving from
 cache geometry in the container, so the cache-miss counters are retained as
 artifacts but not used for the acceptance claim.
 
+### Exact-Case Prefix Fast Path
+
+After allocation removal, the exact-case allowed path still called
+`zend_binary_strncasecmp()` for every restricted namespace comparison. The
+retained follow-up checks the same namespace prefix with `memcmp()` first and
+keeps the case-insensitive fallback for mixed-case callers. The segment-boundary
+check remains outside the helper, so `Foo` still does not match `Foobar`.
+
+Targeted restricted callable-validation rows improved again by paired median:
+
+| Mode | Measurement | Before | After | Delta | RSD before/after |
+| --- | --- | ---: | ---: | ---: | ---: |
+| no OPcache | `private_allowed_callable_validation` | 62.649 | 53.496 | -14.61% | 3.62% / 0.66% |
+| OPcache, no JIT | `private_allowed_callable_validation` | 35.877 | 28.766 | -19.82% | 0.63% / 1.31% |
+| OPcache, function JIT | `private_allowed_callable_validation` | 35.004 | 27.970 | -20.09% | 0.90% / 1.64% |
+| OPcache, tracing JIT | `private_allowed_callable_validation` | 32.669 | 25.819 | -20.97% | 1.19% / 2.22% |
+
+The denied `new` rows were also measured and are not claimed as a win: they
+range from -0.36% to +1.30% by paired median across the four modes.
+
+Public rows that crossed the short-matrix threshold or had high RSD were rerun
+with higher iteration counts:
+
+| Mode | Measurement | Iterations | Before | After | Delta | RSD before/after | Result |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| OPcache, function JIT | `public_new` | 10000000 | 25.668 | 26.106 | +1.71% | 0.43% / 1.36% | Pass |
+| OPcache, tracing JIT | `public_static_property` | 300000000 | 0.597 | 0.602 | +0.78% | 0.88% / 0.53% | Pass |
+| OPcache, tracing JIT | `public_dynamic_lookup_warm` | 50000000 | 3.761 | 3.819 | +1.55% | 1.21% / 2.95% | Pass |
+| OPcache, tracing JIT | `public_instanceof` | 50000000 | 2.268 | 2.339 | +3.14% | 4.08% / 3.87% | Noisy; rerun below |
+| OPcache, tracing JIT | `public_instanceof` | 200000000 | 2.372 | 2.342 | -1.27% | 4.71% / 6.74% | Pass/noisy |
+
+Callgrind used OPcache/no-JIT `private_allowed_callable_validation` workers with
+100000 iterations:
+
+| Case | Before Ir | After Ir | Delta |
+| --- | ---: | ---: | ---: |
+| `private_allowed_callable_validation` | 127,555,145 | 107,152,531 | -16.00% |
+
+The allocation-removal profile still contained calls to
+`zend_binary_strncasecmp()` for the exact-case workload. The exact-case profile
+does not call that function on the retained hot path.
+
 ### Rejected Follow-Up Candidates
 
 The namespace-range lookup itself was not changed: profiling did not identify
@@ -405,7 +463,7 @@ increase comes from lexical namespace/range metadata.
 | Repeated instantiation public class | Measured; paired rows pass |
 | Repeated static access public class | Measured; large cache-hit regressions fixed |
 | Repeated `instanceof` public class | Measured; after-fix long paired rows pass |
-| Allowed access restricted class | Measured; callable-validation allocation removal improves paired rows |
+| Allowed access restricted class | Measured; allocation removal and exact-case fast path improve callable-validation paired rows |
 | Class lookup after cache warmup | Measured; paired row passes |
 | Autoloaded access | Measured; long rerun passes |
 | Denied restricted access | Measured separately with low-iteration error-path loop; follow-up paired rows improve |
@@ -421,7 +479,8 @@ public cache-hit regressions were found and fixed, the class-entry/memory
 overhead from storing a namespace root was eliminated, and the remaining
 `public_instanceof` regression was removed by keeping the const-class miss path
 out of the hot handler. The follow-up sweep also removes allocation from
-restricted visibility decisions without moving public hot paths outside the
-Gate 5 threshold. The remaining performance caveat is that these are container
-microbenchmarks; representative application benchmarks are still future
-evidence rather than a Gate 5 blocker.
+restricted visibility decisions, then removes the common exact-case
+case-insensitive compare from allowed restricted checks, without moving public
+hot paths outside the Gate 5 threshold. The remaining performance caveat is that
+these are container microbenchmarks; representative application benchmarks are
+still future evidence rather than a Gate 5 blocker.
