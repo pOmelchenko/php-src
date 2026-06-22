@@ -3739,15 +3739,9 @@ static bool zend_is_callable_check_class(zend_string *name, zend_class_entry *sc
 {
 	bool ret = false;
 	zend_class_entry *ce;
-	size_t name_len = ZSTR_LEN(name);
-	zend_string *lcname;
-	ALLOCA_FLAG(use_heap);
-
-	ZSTR_ALLOCA_ALLOC(lcname, name_len, use_heap);
-	zend_str_tolower_copy(ZSTR_VAL(lcname), ZSTR_VAL(name), name_len);
 
 	*strict_class = false;
-	if (zend_string_equals(lcname, ZSTR_KNOWN(ZEND_STR_SELF))) {
+	if (zend_string_equals_ci(name, ZSTR_KNOWN(ZEND_STR_SELF))) {
 		if (!scope) {
 			if (error) *error = estrdup("cannot access \"self\" when no class scope is active");
 		} else {
@@ -3764,7 +3758,7 @@ static bool zend_is_callable_check_class(zend_string *name, zend_class_entry *sc
 			}
 			ret = true;
 		}
-	} else if (zend_string_equals(lcname, ZSTR_KNOWN(ZEND_STR_PARENT))) {
+	} else if (zend_string_equals_ci(name, ZSTR_KNOWN(ZEND_STR_PARENT))) {
 		if (!scope) {
 			if (error) *error = estrdup("cannot access \"parent\" when no class scope is active");
 		} else if (!scope->parent) {
@@ -3784,7 +3778,7 @@ static bool zend_is_callable_check_class(zend_string *name, zend_class_entry *sc
 			*strict_class = true;
 			ret = true;
 		}
-	} else if (zend_string_equals(lcname, ZSTR_KNOWN(ZEND_STR_STATIC))) {
+	} else if (zend_string_equals_ci(name, ZSTR_KNOWN(ZEND_STR_STATIC))) {
 		zend_class_entry *called_scope = zend_get_called_scope(frame);
 
 		if (!called_scope) {
@@ -3824,10 +3818,9 @@ static bool zend_is_callable_check_class(zend_string *name, zend_class_entry *sc
 		*strict_class = true;
 		ret = true;
 	} else {
-		if (error) zend_spprintf(error, 0, "class \"%.*s\" not found", (int)name_len, ZSTR_VAL(name));
+		if (error) zend_spprintf(error, 0, "class \"%.*s\" not found", (int)ZSTR_LEN(name), ZSTR_VAL(name));
 	}
 done:
-	ZSTR_ALLOCA_FREE(lcname, use_heap);
 	/* User error handlers may throw from deprecations above; do not report callable as valid. */
 	if (UNEXPECTED(EG(exception))) {
 		return false;
