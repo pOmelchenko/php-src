@@ -53,6 +53,18 @@ private-vs-public callable gap is documented as profiler-limited residual
 overhead; attempts to shortcut it with an op-array-specific cache did not
 improve long-run parity and were rejected.
 
+The fourth measured 2026-06-22 follow-up optimizes
+`zend_is_callable_check_class()` itself. The previous callable class-string path
+lowercased the full class name on every validation just to test the special
+names `self`, `parent`, and `static`. Commit
+`4de989f37977ef17c3ddcd722d9ca8a939721461` replaces that allocation and copy
+with direct `zend_string_equals_ci()` checks. The x86_64 container Callgrind
+profiles show total retired instructions dropping by 7.8-14.1% across the
+targeted public/private callable-validation rows, and the local
+`zend_is_callable_check_class()` cost in OPcache/no-JIT drops by 52.6-55.6%.
+The retained measured artifact is
+[`artifacts/2026-06-22-callable-special-name-checks.md`](artifacts/2026-06-22-callable-special-name-checks.md).
+
 Raw artifacts were kept outside the repository under
 `/tmp/nsvis-gate5-results/`, `/tmp/nsvis-perf-pass-20260622/`, and
 `/tmp/nsvis-callable-pass-20260622/`. The final callable parity pass lives in
@@ -94,6 +106,7 @@ Raw artifacts were kept outside the repository under
 | `nsvis-callable-parity-20260622/paired-cache-only-vs-candidate-inline-callable-10m.json` | Long 10M-iteration callable-only rerun |
 | `nsvis-callable-parity-20260622/profiles/callgrind-*-final-inline-*` | Final container Callgrind profiles for public/private callable rows |
 | `nsvis-callable-parity-20260622/ns_visibility_sizes-*.json` | Baseline/final structure size check |
+| `artifacts/2026-06-22-callable-special-name-checks.md` | Retained wiki artifact for the callable class special-name optimization at `4de989f37977` |
 
 Rejected experiments were also saved (`current-cachehit-global*`,
 `current-globalflag*`). They are not retained: the executor-global
@@ -117,6 +130,8 @@ consumer access that must throw, so the shortcut was reverted.
 | Callable parity public baseline | `0fff3ccce2f5f9e0695502a509fa8e8edf8f77d4` |
 | Callable parity cache-only base | `5a723c129e61363d4a762e522bdb02f9d9e7cff3` plus local callable namespace visibility last-success cache |
 | Callable parity final candidate | `5a723c129e61363d4a762e522bdb02f9d9e7cff3` plus callable cache, lexical namespace interning, and inline callable cache-hit path |
+| Callable special-name base | `030dabd6d553a3f2fadf36b1d36e41caf17b89ed` |
+| Callable special-name candidate | `4de989f37977ef17c3ddcd722d9ca8a939721461` |
 | Container | `php-src-dev:bookworm` from `docker/dev/compose.yml` |
 | OS/CPU | Docker LinuxKit `6.12.76-linuxkit`, `aarch64`, 14 vCPU visible in container |
 | Compiler | `cc (Debian 12.2.0-14+deb12u1) 12.2.0` |
