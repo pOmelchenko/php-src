@@ -328,6 +328,7 @@ struct _zend_executor_globals {
 	const zend_string *callable_ns_visibility_cache_caller_namespace;
 
 	HashTable callable_convert_cache;
+	const zend_string *callable_method_lcname_cache;
 
 	void *reserved[ZEND_MAX_RESERVED_RESOURCES];
 };

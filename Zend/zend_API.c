@@ -3962,7 +3962,17 @@ static zend_always_inline bool zend_is_callable_check_func(const zval *callable,
 		return 0;
 	}
 
-	lmname = zend_string_tolower(mname);
+	if (EXPECTED(!ZSTR_IS_INTERNED(mname))) {
+		lmname = zend_string_tolower(mname);
+	} else if (EG(callable_method_lcname_cache) == mname) {
+		lmname = zend_string_copy(mname);
+	} else {
+		lmname = zend_string_tolower(mname);
+		/* Cache repeated interned lowercase method literals without pinning request strings. */
+		if (lmname == mname) {
+			EG(callable_method_lcname_cache) = mname;
+		}
+	}
 	if (strict_class &&
 	    fcc->calling_scope &&
 		zend_string_equals_literal(lmname, ZEND_CONSTRUCTOR_FUNC_NAME)) {

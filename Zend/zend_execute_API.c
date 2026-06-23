@@ -202,6 +202,7 @@ void init_executor(void) /* {{{ */
 
 	EG(callable_ns_visibility_cache_ce) = NULL;
 	EG(callable_ns_visibility_cache_caller_namespace) = NULL;
+	EG(callable_method_lcname_cache) = NULL;
 
 	zend_hash_init(&EG(callable_convert_cache), 8, NULL, ZVAL_PTR_DTOR, 0);
 
