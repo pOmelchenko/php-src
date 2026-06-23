@@ -2,7 +2,7 @@
 
 | Criterion | Status | Evidence |
 | --- | --- | --- |
-| Every risk has final status | Done | [01-risk-register.md](01-risk-register.md) |
+| Every risk has final disposition | Done | [01-risk-register.md](01-risk-register.md): no undecided or BLOCKED risk remains |
 | Minimal first RFC selected | Done | Revised scope in [02](02-minimal-scope.md) |
 | Syntax conflict handled | Done | [03](03-syntax-decision.md) |
 | Single access invariant | Done | [05](05-operation-coverage.md) |

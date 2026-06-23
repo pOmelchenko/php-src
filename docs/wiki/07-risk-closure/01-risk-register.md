@@ -1,7 +1,15 @@
 # Risk Register
 
-Status values are final for this phase: RESOLVED, MITIGATED, DEFERRED,
-ACCEPTED, or BLOCKED. No item remains unresolved.
+The Status column records the final disposition for this phase, not whether the
+risk has disappeared. The values mean:
+
+- RESOLVED: the chosen design removes the risk for RFC v1;
+- MITIGATED: the risk remains possible but has tests, evidence, or a fallback;
+- DEFERRED: the risk is outside RFC v1 and must not block this scope;
+- ACCEPTED: the risk is a documented limitation of the namespace model;
+- BLOCKED: the risk would block publication or voting.
+
+No item remains undecided, and no item is currently BLOCKED.
 
 | ID | Risk | Severity | Likelihood | Consequence | Options | Decision | Status | Evidence | Tests | Residual risk |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
