@@ -161,8 +161,6 @@ Remaining before voting:
 
 - rerun targeted and broader PHPT suites;
 - finalize generated artifacts and release-clean build artifacts;
-- cover or explicitly defer `ReflectionAttribute::newInstance()` and attribute
-  validation timing;
 - adjust scope after internals discussion if needed.
 
 ## Iteration 7: Private/protected v1 Implementation Alignment

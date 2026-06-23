@@ -26,8 +26,9 @@ Recommended first policy:
 - `ReflectionMethod::invoke()` should not become a runtime membrane check if
   the object has already escaped, though existing method visibility/reflection
   rules still apply;
-- `ReflectionAttribute::newInstance()` must be evaluated separately because it
-  constructs an attribute class by name.
+- `ReflectionAttribute::newInstance()` constructs an attribute class by name and
+  checks namespace visibility against the lexical namespace of the attributed
+  declaration.
 
 ## Stubs and Arginfo
 

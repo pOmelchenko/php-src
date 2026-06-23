@@ -44,7 +44,8 @@ Required:
 
 Status: **Passed in the Docker debug build**. Gate 3 covers VM class-name
 semantic operations, linking, type positions, callables, Reflection allocation,
-aliases, direct require, and serialization with targeted PHPT coverage.
+ReflectionAttribute instantiation, aliases, direct require, and serialization
+with targeted PHPT coverage.
 
 ## Gate 4: OPcache and Preload
 
@@ -58,9 +59,10 @@ Required:
 
 Status: **Passed for OPcache/preload in the Docker debug build**. Gate 4
 persists class and lexical caller metadata through OPcache shared memory and
-file cache, keeps optimizer class-constant/static-method shortcuts from
-bypassing restricted CEs, validates OPcache CLI and file-cache replay, and
-validates preload metadata plus dependency linking.
+file cache, persists attributed-declaration namespace metadata, keeps optimizer
+class-constant/static-method shortcuts from bypassing restricted CEs, validates
+OPcache CLI and file-cache replay, and validates preload metadata plus
+dependency linking.
 
 JIT validation after Gate 4 is **passed in the Docker debug build** for function
 JIT, tracing JIT, namespace ranges, and inheritance/linking behavior. This closes

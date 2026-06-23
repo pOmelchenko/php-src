@@ -59,6 +59,8 @@ typedef struct {
 typedef struct _zend_attribute {
 	zend_string *name;
 	zend_string *lcname;
+	/* Namespace where the attribute was written; NULL means global namespace. */
+	zend_string *lexical_namespace;
 	/* Only non-null for internal attributes with validation errors that are
 	 * delayed until runtime via #[\DelayedTargetValidation] */
 	zend_string *validation_error;

@@ -322,11 +322,11 @@ Implemented in the spike:
 - OPcache metadata persistence, file-cache replay, optimizer shortcut checks,
   and preload/linking checks;
 - JIT known-class/helper checks validated under function and tracing JIT.
+- `ReflectionAttribute::newInstance()` checks attribute class namespace
+  visibility against the namespace of the attributed declaration.
 
 Not complete for this RFC:
 
-- `ReflectionAttribute::newInstance()` and attribute validation timing are
-  specified but not yet covered by the current Gate 3 prototype slice;
 - broader full test-suite coverage, generated artifacts, and final publication
   packaging remain;
 - performance evidence is measured and currently passes the retained public

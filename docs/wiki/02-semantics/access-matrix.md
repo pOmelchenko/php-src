@@ -56,7 +56,7 @@ Notation:
 | Intersection types | Check each class-like component | type resolution | declaration namespace | may be lazy | compile/link fatal or `Error` | `ns_visibility_intersection_type.phpt` |
 | DNF types | Check each class-like component | type resolution | declaration namespace | may be lazy | compile/link fatal or `Error` | `ns_visibility_dnf_type.phpt` |
 | Constructor property promotion | Check promoted property type from class declaration namespace | class compile/link/type resolution | namespace of declaring class | may be lazy | compile/link fatal or `Error` | `ns_visibility_promoted_property.phpt` |
-| Attribute arguments referring to class names | Depends on `::class` decision and attribute validation timing | compile/reflection/runtime | namespace of attribute use | usually no autoload for `::class` | unresolved | `ns_visibility_attribute_class_arg.phpt` |
+| Attribute class | Attribute object creation checks the attribute class from the attributed declaration namespace; `::class` arguments remain strings until later semantic use | reflection runtime | namespace of attributed declaration | attribute class autoload follows existing ReflectionAttribute behavior | `Error` from `ReflectionAttribute::newInstance()` | `ns_visibility_attribute_new_instance.phpt` |
 
 ## Existence and Introspection Functions
 
@@ -96,4 +96,3 @@ Notation:
 | Denied then allowed | First denied use must not poison later allowed use | runtime cache/class table | second caller namespace | yes/no | allowed | `ns_visibility_denied_then_allowed.phpt` |
 | Direct `require` of class file | Declaration loading does not grant later access | compile/include/runtime | require caller for include, later use caller for use | no if file directly included | later `Error` | `ns_visibility_direct_require.phpt` |
 | Autoloader side effects | Autoloader may run before denial because metadata is known only after load | runtime class fetch | original use namespace, not autoloader namespace | yes | `Error` after load | `ns_visibility_autoload_side_effects.phpt` |
-

@@ -21,6 +21,7 @@
 #include "zend_attributes.h"
 #include "zend_attributes_arginfo.h"
 #include "zend_exceptions.h"
+#include "zend_execute.h"
 #include "zend_smart_str.h"
 
 ZEND_API zend_class_entry *zend_ce_attribute;
@@ -336,6 +337,11 @@ ZEND_API zend_result zend_get_attribute_object(zval *obj, zend_class_entry *attr
 {
 	zend_execute_data *call = NULL;
 
+	if (UNEXPECTED(!zend_check_class_namespace_visibility_from_fast(
+			attribute_ce, attribute_data->lexical_namespace, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		return FAILURE;
+	}
+
 	if (filename) {
 		/* Set up dummy call frame that makes it look like the attribute was invoked
 		 * from where it occurs in the code. */
@@ -468,6 +474,9 @@ static void attr_free(zval *v)
 
 	zend_string_release(attr->name);
 	zend_string_release(attr->lcname);
+	if (attr->lexical_namespace != NULL) {
+		zend_string_release(attr->lexical_namespace);
+	}
 	if (attr->validation_error != NULL) {
 		zend_string_release(attr->validation_error);
 	}
@@ -503,6 +512,7 @@ ZEND_API zend_attribute *zend_add_attribute(HashTable **attributes, zend_string 
 	}
 
 	attr->lcname = zend_string_tolower_ex(attr->name, persistent);
+	attr->lexical_namespace = NULL;
 	attr->validation_error = NULL;
 	attr->flags = flags;
 	attr->lineno = lineno;

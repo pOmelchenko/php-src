@@ -31,7 +31,7 @@ Invariant:
 | Union | Yes per class-like arm | Yes if PHP loads type | Yes per restricted arm | Declaration namespace | Type resolution | OP-TYPE-UNION |
 | Intersection | Yes per class-like arm | Yes if PHP loads type | Yes per restricted arm | Declaration namespace | Type resolution | OP-TYPE-INTERSECTION |
 | DNF | Yes per class-like arm | Yes if PHP loads type | Yes per restricted arm | Declaration namespace | Type resolution | OP-TYPE-DNF |
-| Attribute class | Yes on attribute instantiation/validation | Yes if needed | Yes | Namespace of attributed declaration | ReflectionAttribute::newInstance or validation | OP-ATTR-CLASS |
+| Attribute class | Yes on attribute instantiation/validation | Yes if needed | Yes | Namespace of attributed declaration | `ReflectionAttribute::newInstance()` runtime check; no compile/link validation | OP-ATTR-CLASS |
 | Class name inside attribute argument | Usually no (`::class` string) | No for `::class` | No until later semantic use | N/A | Later operation | OP-ATTR-CLASS-STRING |
 | First-class callable | Yes for class-string/static forms | Yes if needed | Yes at creation | Creation lexical namespace | Runtime callable creation | OP-CALLABLE-FIRST |
 | String callable | Yes at validation/invocation | Yes if needed | Yes | Validation/invocation lexical namespace | Runtime | OP-CALLABLE-STRING |
@@ -78,13 +78,13 @@ Covered by focused PHPTs:
 - callables, probe-only APIs, Reflection instantiation, aliases, existing-object
   operations, and `unserialize()`:
   `ns_visibility_gate3_callables_reflection_serialization.phpt`;
+- attribute class instantiation through Reflection:
+  `ns_visibility_attribute_new_instance.phpt`;
 - direct include bypass guard:
   `ns_visibility_gate3_direct_require.phpt`.
 
 Explicitly outside Gate 3:
 
-- `ReflectionAttribute::newInstance()` and attribute validation timing. Attribute
-  class strings remain string production until a later semantic operation.
 - OPcache/preload/JIT behavioral validation. Gate 3 updates persistence plumbing
   for new op_array namespace metadata, but Gate 4 must prove optimized and
   persistent paths cannot bypass checks.

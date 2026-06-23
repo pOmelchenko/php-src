@@ -7616,6 +7616,11 @@ ZEND_METHOD(ReflectionAttribute, newInstance)
 		RETURN_THROWS();
 	}
 
+	if (UNEXPECTED(!zend_check_class_namespace_visibility_from_fast(
+			ce, attr->data->lexical_namespace, ZEND_CLASS_NAMESPACE_VISIBILITY_THROW))) {
+		RETURN_THROWS();
+	}
+
 	if (NULL == (marker = zend_get_attribute_str(ce->attributes, ZEND_STRL("attribute")))) {
 		zend_throw_error(NULL, "Attempting to use non-attribute class \"%s\" as attribute", ZSTR_VAL(attr->data->name));
 		RETURN_THROWS();

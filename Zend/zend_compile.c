@@ -7902,6 +7902,9 @@ static void zend_compile_attributes(
 				? ZEND_ATTRIBUTE_STRICT_TYPES : 0;
 			attr = zend_add_attribute(
 				attributes, name, args ? args->children : 0, flags, offset, el->lineno);
+			if (FC(current_namespace)) {
+				attr->lexical_namespace = zend_string_copy(FC(current_namespace));
+			}
 			zend_string_release(name);
 
 			/* Populate arguments */

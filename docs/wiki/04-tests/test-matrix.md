@@ -92,7 +92,7 @@ acceptance test.
 | T-OP-016 | RISK-011 | Typed class constant | Checked at type CE resolution |
 | T-OP-017 | RISK-011 | Promoted property | Checked at type CE resolution |
 | T-OP-018 | RISK-011 | Union/intersection/DNF | Each class-like component checked |
-| T-OP-019 | RISK-004 | Attribute class | Checked on attribute instantiation/validation |
+| T-OP-019 | RISK-004 | Attribute class | Checked by `ReflectionAttribute::newInstance()` from attributed declaration namespace |
 | T-OP-020 | RISK-014 | Class name inside attribute argument via `::class` | String, later use checked |
 | T-OP-021 | RISK-004 | First-class callable | Checked |
 | T-OP-022 | RISK-004 | String callable | Checked at resolution/invocation |

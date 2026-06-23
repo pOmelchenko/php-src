@@ -21,6 +21,12 @@ Reflection is split into metadata and semantic operations.
 Reflection can reveal restricted class names. That is intentional and does not
 grant construction or semantic class-name use.
 
+`ReflectionAttribute::getName()` and `getAttributes()` remain metadata
+operations. Instantiating the attribute object is the semantic operation:
+`ReflectionAttribute::newInstance()` resolves the attribute class and checks it
+against the namespace where the attribute was written, not the namespace where
+reflection is called.
+
 ## Autoload Policy
 
 For an unknown class name, namespace visibility metadata is unavailable until
@@ -69,4 +75,3 @@ check visibility.
 `class_exists()`, `interface_exists()`, `trait_exists()`, and `enum_exists()` may
 return true for restricted declarations. They do not create a capability. A
 later `new`, static access, type use, or inheritance operation must still check.
-

@@ -16,7 +16,7 @@ suite has been cleared.
 | `protected(namespace)` terminology handled | Mitigated | [03](03-syntax-decision.md), RISK-001 |
 | Types defined | Done | [09](09-public-api-and-types.md) |
 | Traits defined | Done | [06](06-lexical-scope.md) |
-| Reflection policy defined | Done for discussion; one voting gap remains | [08](08-reflection-autoload-aliases.md); `ReflectionAttribute::newInstance()` timing remains a voting blocker |
+| Reflection policy defined | Focused coverage passed | [08](08-reflection-autoload-aliases.md); `ReflectionAttribute::newInstance()` checked against attributed declaration namespace |
 | Aliases defined | Done | [08](08-reflection-autoload-aliases.md) |
 | Autoload defined | Done | [08](08-reflection-autoload-aliases.md) |
 | `::class` defined | Done | [08](08-reflection-autoload-aliases.md) |
@@ -52,6 +52,4 @@ Voting blockers:
 
 - generated/release-clean artifacts are not finalized;
 - broader PHPT coverage has not been rerun;
-- `ReflectionAttribute::newInstance()` and attribute validation timing still
-  need implementation coverage or explicit deferral;
 - internals discussion may require scope or wording changes.

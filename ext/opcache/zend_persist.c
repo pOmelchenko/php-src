@@ -310,6 +310,9 @@ static HashTable *zend_persist_attributes(HashTable *attributes)
 
 		zend_accel_store_interned_string(copy->name);
 		zend_accel_store_interned_string(copy->lcname);
+		if (copy->lexical_namespace) {
+			zend_accel_store_interned_string(copy->lexical_namespace);
+		}
 		if (copy->validation_error) {
 			zend_accel_store_interned_string(copy->validation_error);
 		}
