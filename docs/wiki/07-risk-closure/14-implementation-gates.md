@@ -88,6 +88,12 @@ latest long paired run shows -0.49% without OPcache, -5.01% with
 OPcache/no-JIT, +0.14% under function JIT, and +2.20% under tracing JIT. See
 [11-performance-evidence.md](11-performance-evidence.md).
 
+The 2026-06-23 trait-body metadata follow-up also measures the cold
+compile/link path changed by preserving trait method lexical namespace metadata.
+The final 5000-bundle `hyperfine` fixtures show +1.48% median for trait
+aliases/adaptations and +0.54% median for trait precedence/`insteadof`, with no
+sustained regression.
+
 ## Gate 6: RFC Readiness
 
 Required:
@@ -98,11 +104,15 @@ Required:
 - independent decisions are separate votes;
 - tests correspond to normative text.
 
-Status: **Partially passed for documentation**, **not passed for voting**.
+Status: **Passed for documentation reconciliation**, **not passed for voting**.
+The draft, risk register, gates, roadmap, and acceptance checklist now use the
+same status model: focused prototype gates are measured/passed, while broader
+test-suite coverage, generated artifacts, publication packaging, and
+post-discussion scope adjustments remain before a vote.
 
 ## Kill Criteria Applied
 
 The C prototype is still marked incomplete because:
 
-- remaining RFC-readiness work must reconcile documentation, generated
-  artifacts, and broader test coverage outside the focused prototype slices.
+- generated artifacts and broader test coverage outside the focused prototype
+  slices remain before voting.

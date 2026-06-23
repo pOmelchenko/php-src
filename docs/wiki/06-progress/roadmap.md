@@ -58,7 +58,8 @@ Remaining before closing Iteration 2:
 
 ## Iteration 3: Minimal Runtime Enforcement
 
-Status: in progress in the working tree.
+Status: complete for the original `new`/class-fetch slice; superseded by
+Iteration 7 for the broader v1 alignment work.
 
 Entry requirements:
 
@@ -83,14 +84,14 @@ Completed so far:
 - segment-prefix false-positive rejection;
 - allowed-then-denied and denied-then-allowed cache-order test.
 
-Remaining:
-
-- replace current named-function/method caller namespace derivation with a
-  complete lexical caller source;
-- add top-level, closure, eval, trait, and method-specific lexical tests;
-- add OPcache on/off checks for the covered construction paths.
+Remaining Iteration 3 items: none. Complete lexical caller coverage,
+OPcache/preload/JIT validation, and broader operation coverage are tracked in
+Iterations 4, 5, and 7.
 
 ## Iteration 4: Full Runtime Coverage
+
+Status: passed for the focused Gate 3 prototype slice; broader suite evidence
+and explicitly deferred attribute-instantiation timing remain before voting.
 
 Deliverables:
 
@@ -107,6 +108,9 @@ Deliverables:
 
 ## Iteration 5: OPcache/JIT/Preload
 
+Status: passed for focused Gate 4 correctness and Gate 5 performance evidence;
+generated artifacts and broader suite evidence remain before voting.
+
 Deliverables:
 
 - persistence of metadata;
@@ -118,7 +122,8 @@ Deliverables:
 
 ## Iteration 6: RFC Hardening
 
-Status: started in Phase 2 documentation.
+Status: documentation reconciled for an implementation-backed discussion
+package; not voting-ready.
 
 Deliverables:
 
@@ -141,16 +146,24 @@ Completed in Phase 2 documentation:
 - rewrote the RFC draft to describe the selected private/protected scope;
 - added DEC-020 through DEC-040 as superseding v1 decisions;
 - replaced open questions with final dispositions and implementation gates;
-- updated test and PHPT plans for the revised v1 model.
+- updated test and PHPT plans for the revised v1 model;
+- reconciled the RFC draft, risk register, implementation gates, roadmap, and
+  acceptance checklist with the current trait-body metadata, OPcache/preload,
+  file-cache, JIT, and performance evidence.
 
-Remaining before RFC discussion:
+Remaining before public RFC discussion:
 
-- finish aligning the C prototype beyond the current parser/metadata and
-  `new`/class-fetch slice;
-- complete class-entry enforcement coverage;
-- validate OPcache/preload/JIT behavior;
-- measure performance;
-- rerun targeted and broader PHPT suites.
+- publish the branch;
+- prepare a concise discussion package with scope, semantics, implementation
+  evidence, performance evidence, accepted risks, and future scope.
+
+Remaining before voting:
+
+- rerun targeted and broader PHPT suites;
+- finalize generated artifacts and release-clean build artifacts;
+- cover or explicitly defer `ReflectionAttribute::newInstance()` and attribute
+  validation timing;
+- adjust scope after internals discussion if needed.
 
 ## Iteration 7: Private/protected v1 Implementation Alignment
 
@@ -159,11 +172,15 @@ Deliverables:
 - accept class-level `protected(namespace)` in v1 parser/tests; **done for the
   current parser slice**;
 - normalize declaring and caller namespaces for checks; **done for the current
-  `new`/class-fetch slice**;
+  focused slices**;
 - carry lexical namespace through top-level, closures, eval, traits, class
   linking, Reflection, internal functions, and unserialize; **done for trait
   body operations and the existing focused slices**;
-- enforce all operations in the v1 operation matrix;
-- preserve checks on cache hits and aliases;
-- run OPcache/preload tests;
-- record benchmark evidence.
+- enforce all operations in the v1 operation matrix; **done for the Gate 3
+  focused slice, excluding explicitly deferred attribute-instantiation timing**;
+- preserve checks on cache hits and aliases; **done for focused VM, callable,
+  OPcache, alias, and trait-body tests**;
+- run OPcache/preload tests; **done for OPcache CLI, file cache, preload,
+  preload linking, JIT, and trait-body metadata focused coverage**;
+- record benchmark evidence; **done for the retained public hot-path gate and
+  trait-body metadata compile/link follow-up**.

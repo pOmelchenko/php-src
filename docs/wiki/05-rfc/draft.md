@@ -1,8 +1,8 @@
 # PHP RFC: Namespace Visibility for Class-like Declarations
 
-Version: 0.3-draft
+Version: 0.4-draft
 
-Date: 2026-06-21
+Date: 2026-06-23
 
 Author: Research draft, unassigned
 
@@ -305,7 +305,9 @@ The feature is for architectural enforcement in cooperating codebases.
 
 Current local prototype status: experimental private/protected namespace
 visibility slice with focused enforcement, OPcache/preload, and JIT correctness
-coverage.
+coverage. The RFC-readiness documents have been reconciled with the current
+prototype evidence; the prototype remains voting-incomplete until broader
+coverage and generated artifacts are finalized.
 
 Implemented in the spike:
 
@@ -323,9 +325,13 @@ Implemented in the spike:
 
 Not complete for this RFC:
 
-- broader RFC-readiness reconciliation and full test-suite coverage remain;
+- `ReflectionAttribute::newInstance()` and attribute validation timing are
+  specified but not yet covered by the current Gate 3 prototype slice;
+- broader full test-suite coverage, generated artifacts, and final publication
+  packaging remain;
 - performance evidence is measured and currently passes the retained public
-  hot-path microbenchmark threshold.
+  hot-path microbenchmark threshold and the targeted trait composition
+  compile/link measurements.
 
 ## Performance
 
@@ -337,7 +343,12 @@ was traced to VM handler layout and fixed by moving the const-class miss path to
 a cold helper.
 
 The intended design still requires a public fast path for unrestricted
-class-like declarations and passing reproducible benchmarks before voting.
+class-like declarations and passing reproducible benchmarks before voting. A
+targeted 2026-06-23 trait-body metadata comparison also measures the cold
+compile/link path affected by preserving trait method lexical namespace
+metadata; paired medians were +1.48% for trait aliases/adaptations and +0.54%
+for trait `insteadof` precedence fixtures, within the retained performance
+gate.
 
 ## Rejected Alternatives
 

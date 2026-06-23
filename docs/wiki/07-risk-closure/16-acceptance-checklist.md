@@ -16,19 +16,20 @@
 | `::class` defined | Done | [08](08-reflection-autoload-aliases.md) |
 | Global namespace defined | Done | [04](04-normative-semantics.md) |
 | Class-fetch coverage map | Done | [07](07-runtime-and-caches.md) |
-| Cache-order tests | Partial | Existing `new` cache-order test only |
-| OPcache/preload plan or results | Measured, passed for focused coverage | [07](07-runtime-and-caches.md), [14](14-implementation-gates.md) |
-| Performance evidence | Measured, passed for retained microbenchmarks | [11](11-performance-evidence.md): after-fix `public_instanceof` paired rows pass |
-| RFC draft updated | Done after this phase's RFC patch | [../05-rfc/draft.md](../05-rfc/draft.md) |
+| Cache-order tests | Focused coverage passed | `new`, callable-cache, OPcache CLI, alias, and trait-body cache-sensitive focused tests |
+| OPcache/preload plan or results | Measured, passed for focused coverage | OPcache CLI, file cache, preload, preload linking, JIT, and trait-body metadata tests |
+| Performance evidence | Measured, passed for retained microbenchmarks | [11](11-performance-evidence.md): public hot-path gate and trait-body compile/link follow-up pass |
+| RFC draft updated | Done | [../05-rfc/draft.md](../05-rfc/draft.md) |
 | Future Scope separated | Done | RFC draft and [13](13-rfc-splitting.md) |
 | No hidden security claims | Done | [10](10-compatibility-and-security.md), [15](15-accepted-risks.md) |
-| No unrelated git diff | Must verify | Final `git diff --stat` |
+| No unrelated git diff | Must verify before publication | Current raw benchmark outputs may remain untracked locally |
 
 ## Readiness
 
-Ready for RFC discussion: **not yet**. The documentation is discussion-ready,
-but the implementation gates are not.
+Ready for RFC discussion: **yes for an implementation-backed discussion
+package**, after publishing the branch and sending a concise summary. The
+focused implementation gates are reconciled and measured.
 
-Ready for RFC voting: **no** until the remaining RFC-readiness reconciliation,
-generated artifacts, and broader coverage work are complete. Gate 5 performance
-is no longer the blocker in the retained microbenchmark gate.
+Ready for RFC voting: **no** until generated artifacts, broader test-suite
+coverage, and any scope adjustments from discussion are complete. Gate 5
+performance is no longer the blocker in the retained microbenchmark gate.
