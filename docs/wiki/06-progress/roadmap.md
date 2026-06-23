@@ -161,7 +161,8 @@ Deliverables:
 - normalize declaring and caller namespaces for checks; **done for the current
   `new`/class-fetch slice**;
 - carry lexical namespace through top-level, closures, eval, traits, class
-  linking, Reflection, internal functions, and unserialize;
+  linking, Reflection, internal functions, and unserialize; **done for trait
+  body operations and the existing focused slices**;
 - enforce all operations in the v1 operation matrix;
 - preserve checks on cache hits and aliases;
 - run OPcache/preload tests;

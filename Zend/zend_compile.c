@@ -1325,6 +1325,12 @@ ZEND_API void function_add_ref(zend_function *function) /* {{{ */
 		if (op_array->refcount) {
 			(*op_array->refcount)++;
 		}
+		if (op_array->lexical_namespace) {
+			zend_string_addref(op_array->lexical_namespace);
+		}
+		for (uint32_t i = 0; i < op_array->last_namespace_range; i++) {
+			zend_string_addref(op_array->namespace_ranges[i].namespace_name);
+		}
 
 		ZEND_MAP_PTR_INIT(op_array->run_time_cache, NULL);
 		ZEND_MAP_PTR_INIT(op_array->static_variables_ptr, NULL);

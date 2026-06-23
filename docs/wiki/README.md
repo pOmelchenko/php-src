@@ -178,7 +178,8 @@ Known limitations:
   class modifiers, for example `private(namespace) final class A {}` or
   `protected(namespace) abstract class B {}`;
 - explicit root syntax remains Future Scope.
-- trait body lexical namespace is not yet implemented for the selected model.
+- trait body lexical namespace is implemented for the focused prototype,
+  including aliases/adaptations, OPcache file cache, and preload.
 
 ## Source Register
 

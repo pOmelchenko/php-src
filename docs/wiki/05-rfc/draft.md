@@ -315,13 +315,14 @@ Implemented in the spike:
 - runtime enforcement for representative class-name semantic operations,
   linking, type positions, callables, aliases, Reflection construction, and
   unserialization;
+- trait body operations keep the trait declaration namespace after composition,
+  including aliases/adaptations and OPcache persistence paths;
 - OPcache metadata persistence, file-cache replay, optimizer shortcut checks,
   and preload/linking checks;
 - JIT known-class/helper checks validated under function and tracing JIT.
 
 Not complete for this RFC:
 
-- trait body operations need original trait declaration namespace metadata;
 - broader RFC-readiness reconciliation and full test-suite coverage remain;
 - performance evidence is measured and currently passes the retained public
   hot-path microbenchmark threshold.

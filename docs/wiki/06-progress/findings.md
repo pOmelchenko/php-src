@@ -42,8 +42,9 @@
   dispositions.
 - Namespace comparisons for class-like visibility must normalize case according
   to class-like lookup semantics.
-- Trait body operations should use the trait declaration namespace; current
-  php-src trait scope fixup means implementation needs extra metadata.
+- Trait body operations should use the trait declaration namespace. The current
+  prototype keeps that namespace on trait method op arrays and preserves it
+  across trait clones, aliases/adaptations, OPcache file cache, and preload.
 
 ## Implementation
 

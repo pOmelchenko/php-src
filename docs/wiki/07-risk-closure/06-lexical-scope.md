@@ -61,8 +61,6 @@ An `op_array` namespace field is likely necessary for:
 
 It is not sufficient by itself for:
 
-- trait body operations after trait scope fixup, unless the original trait
-  declaration namespace is stored separately or copied into the op array;
 - class linking operations where no execute frame exists;
 - Reflection and unserialize operations unless caller execute data is passed;
 - OPcache inheritance cache replay unless metadata and checks survive cache use.
@@ -78,6 +76,12 @@ Two operations are distinct:
    - caller namespace: trait declaration namespace.
 
 This prevents a trait declared outside an allowed namespace from gaining access
-merely by being used in an allowed class. It also means the current Phase C
-prototype is incomplete for this rule.
+merely by being used in an allowed class.
 
+Implementation status: the prototype stores the trait declaration namespace in
+the trait method op array and keeps that metadata alive across trait method
+clones, aliases/adaptations, OPcache CLI, file-cache replay, and preload. The
+focused coverage is `ns_visibility_trait_body_lexical_namespace.phpt`,
+`ns_visibility_trait_body_opcache_cli.phpt`,
+`ns_visibility_trait_body_file_cache.phpt`, and
+`ns_visibility_trait_body_preload.phpt`.
