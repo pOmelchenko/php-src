@@ -65,10 +65,23 @@ targeted public/private callable-validation rows, and the local
 The retained measured artifact is
 [`artifacts/2026-06-22-callable-special-name-checks.md`](artifacts/2026-06-22-callable-special-name-checks.md).
 
+A measured 2026-06-23 trait-body metadata follow-up covers commit
+`5fb23dcda05a72c1dbeec19b1f9a7b61788ee759`, which preserves the lexical
+namespace metadata of trait body op arrays after trait composition. This change
+only adds refcounting work in the compile/link path that clones trait methods;
+it does not add a runtime hot-path check. The targeted `hyperfine` comparison
+therefore uses generated cold compile/link fixtures with many trait method
+clones, aliases, adaptations, and `insteadof` rules. The final 5000-bundle
+fixtures show no sustained regression: paired medians are +1.48% for the alias
+case and +0.54% for the precedence case, with `HEAD` minimum times no worse
+than the baseline.
+
 Raw artifacts were kept outside the repository under
 `/tmp/nsvis-gate5-results/`, `/tmp/nsvis-perf-pass-20260622/`, and
 `/tmp/nsvis-callable-pass-20260622/`. The final callable parity pass lives in
-`/tmp/nsvis-callable-parity-20260622/`.
+`/tmp/nsvis-callable-parity-20260622/`. The 2026-06-23 trait-body metadata
+raw `hyperfine` JSON artifacts were written to `benchmark/results/`, with
+generated fixtures under `/tmp/nsvis_trait_body_*`.
 
 ## Artifacts
 
@@ -107,6 +120,9 @@ Raw artifacts were kept outside the repository under
 | `nsvis-callable-parity-20260622/profiles/callgrind-*-final-inline-*` | Final container Callgrind profiles for public/private callable rows |
 | `nsvis-callable-parity-20260622/ns_visibility_sizes-*.json` | Baseline/final structure size check |
 | `artifacts/2026-06-22-callable-special-name-checks.md` | Retained wiki artifact for the callable class special-name optimization at `4de989f37977` |
+| `benchmark/results/ns_visibility_trait_body_metadata_perf_20260623.json` | Initial 2000-bundle trait-body metadata `hyperfine` comparison |
+| `benchmark/results/ns_visibility_trait_body_metadata_perf_traits_rerun_20260623.json` | 2000-bundle trait-only rerun with more measured runs |
+| `benchmark/results/ns_visibility_trait_body_metadata_perf_traits_5000x8_20260623.json` | Final 5000-bundle trait-only `hyperfine` comparison |
 
 Rejected experiments were also saved (`current-cachehit-global*`,
 `current-globalflag*`). They are not retained: the executor-global
@@ -132,6 +148,9 @@ consumer access that must throw, so the shortcut was reverted.
 | Callable parity final candidate | `5a723c129e61363d4a762e522bdb02f9d9e7cff3` plus callable cache, lexical namespace interning, and inline callable cache-hit path |
 | Callable special-name base | `030dabd6d553a3f2fadf36b1d36e41caf17b89ed` |
 | Callable special-name candidate | `4de989f37977ef17c3ddcd722d9ca8a939721461` |
+| Trait-body metadata base | `44ae217cc335` |
+| Trait-body metadata candidate | `5fb23dcda05a` |
+| Trait-body metadata harness | Generated cold compile/link fixtures, `hyperfine`, `memory_limit=-1`, `opcache.enable_cli=0` |
 | Container | `php-src-dev:bookworm` from `docker/dev/compose.yml` |
 | OS/CPU | Docker LinuxKit `6.12.76-linuxkit`, `aarch64`, 14 vCPU visible in container |
 | Compiler | `cc (Debian 12.2.0-14+deb12u1) 12.2.0` |
@@ -149,6 +168,18 @@ and without the local allocation-removal patch, then ran alternating paired
 workers from those binaries. The exact-case follow-up reused the saved
 allocation-removal binary as `php-after` and compared it with `php-exactcase`.
 The follow-up artifacts live in `/tmp/nsvis-perf-pass-20260622/`.
+
+The 2026-06-23 trait-body metadata follow-up used a local release-ish NTS CLI
+build with `CFLAGS="-O2 -g"` and minimal configure flags
+`--disable-all --enable-cli --enable-opcache --without-pear`, plus a baseline
+worktree at `44ae217cc335`.
+The relevant final fixture sizes were 8.5 MB for trait alias/adaptation and
+21.8 MB for trait-precedence/`insteadof`.
+
+| Scenario | Baseline median | Candidate median | Delta | Result |
+| --- | ---: | ---: | ---: | --- |
+| Trait aliases/adaptations, 5000 bundles x 8 methods | 207.230 ms | 210.287 ms | +1.48% | Pass |
+| Trait precedence/`insteadof`, 5000 bundles x 8 methods | 407.984 ms | 410.205 ms | +0.54% | Pass |
 
 Representative command shape:
 
